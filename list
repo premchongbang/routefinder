@@ -1,0 +1,49 @@
+thing to do-
+————————————— creat basic html 
+—————————— set up express
+--------------------- bd connection has been made
+need to get all the nodes set up and latlng data collected from map
+need to set up grid for locating user current location in the map
+storing db values as objects in js
+work on algorithm
+	create graph with respective weights and neighbours
+	use lat and lng to get the position of the user using their current co-ordinate
+	find a better way to detect their position and put them on the map
+
+alg
+	nodes starts from 1 and onwards
+	how to have a sequential execution of code and deal with call back functions
+	make sure all callback functions are executed before returned in all functions
+
+db
+work out how to perfrom delete, add, etc in bd
+	can’t perform select query
+work on cookie and session
+
+
+Note-
+socket makes it possible to to read data after routing
+lat and log values are stored in nested array individually
+
+
+session
+
+//creating session
+app.use(session({
+	reserve: false,
+	saveUninitialized: true,
+	secret: credentials.cookieSecret,
+}));
+
+// middleware to count the number of views for specific page
+app.use(function(req, res, next){
+var views = req.session.views:
+
+if(!views){
+	views = req.session.views ={};
+}
+// gets the pathname
+var pathname = parseurl(reg).pathname;
+views[pathname] = (views[pathname] || 0) + 1;
+next();
+});
