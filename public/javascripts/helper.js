@@ -17,13 +17,14 @@ module.exports = {
       return 12742 * Math.asin(Math.sqrt(a)) * 1000; // Diameter of the earth in km (2 * 6371)
   },
   //gets the node attribute
-  // right now just works on building node id and break
-  // neat to work on every node using current location using node_id if building_id does not match
+  // ??? right now just works on building node id and break
+  // neat to work on every node using current location using node_id if node_id does not match
   getNode: function(node, graph){
     var temp;
+
     for(i=0; i < graph.length; i++){
-      if(graph[i].building_id == node){
-        temp = {node_id:graph[i].node_id, building_id:graph[i].building_id, root_id:graph[i].node_id, latlng:graph[i].latlng, weight:0, pathLength:0, fvalue:0, edge_id:0};
+      if(graph[i].node_id == parseInt(node)){
+        temp = {node_id:graph[i].node_id, root_id:graph[i].node_id, latlng:graph[i].latlng, weight:0, pathLength:0, fvalue:0, edge_id:0};
         break;
       }
     }
@@ -32,44 +33,51 @@ module.exports = {
   // returns nodes with highest f value
   getSuccessor: function(setItems){
     var temp;
+    var temp2;
+    var setLen = setItems.length;
     
-    if(setItems.length > 1){
-      for(i=0; i <= setItems.length; i++){
-        temp = comparator(setItems[i], setItems[i + 1]);
+    if(setLen > 2){
+      for(i=0; i < (setLen - 1); i++){
+        temp = this.comparator(setItems[i], setItems[i + 1]);
+        if(i < 1){
+          temp2 = temp;
+        } else {
+          temp2 = this.comparator(temp, temp2);
+        }
       }
-      return temp;
-    } else if(setItems.length == 0){
-      return null;
+      return temp2;
+    } else if(setLen == 2){
+      return this.comparator(setItems[0], setItems[1]);
     } else {
       return setItems[0];
     }
   },
   comparator: function(item1, item2){
-    if(item1.fvalue > item2.fvalue){
+    if(item1.fvalue < item2.fvalue){
       return item1;
     } else {
       return item2;
     }
   },
   // stores current vertex neighbours and returns
-  getNeigh: function(graph, edges, node){
+  getNeigh: function(graph, edges, root){
     var neighbours = [];
     
     // stores the starting vertex
     for(i=0; i < edges.length; i++){
       var neighTo = edges[i].to_node;
       var neighFrom = edges[i].from_node;
-      if(neighTo == node.node_id){
+      if(neighTo == root.node_id){
         for(j=0;j < graph.length; j++){
           if(neighTo == graph[j].node_id){
-            neighbours.push({node_id:graph[j].node_id, building_id:graph[j].building_id, root_id:node.node_id, latlng:graph[j].latlng, weight:edges[i].weight, pathLength:node.pathLength, fvalue:0, edge_id:edges[i].edge_id});
+            neighbours.push({node_id:neighFrom, root_id:root.node_id, latlng:graph[j].latlng, weight:edges[i].weight, pathLength:root.pathLength, fvalue:0, edge_id:edges[i].edge_id});
             break;
           }
         }
-      } else if(neighFrom == node.node_id){
+      } else if(neighFrom == root.node_id){
         for(j=0;j < graph.length; j++){
           if(neighFrom == graph[j].node_id){
-            neighbours.push({node_id:graph[j].node_id, building_id:graph[j].building_id, root_id:node.node_id, latlng:graph[j].latlng, weight:edges[i].weight, pathLength:node.pathLength, fvalue:0, edge_id:edges[i].edge_id});
+            neighbours.push({node_id:neighTo, root_id:root.node_id, latlng:graph[j].latlng, weight:edges[i].weight, pathLength:root.pathLength, fvalue:0, edge_id:edges[i].edge_id});
             break;
           }
         }
@@ -86,8 +94,8 @@ module.exports = {
   },
   containsInClosedSet: function(node, closeSet){
     var bool = false;
-    for(i=0; i < closeSet.length; i++){
-      if(closeSet[i].node_id == node.node_id){
+    for(j=0; j < closeSet.length; j++){
+      if(closeSet[j].node_id == node.node_id){
         bool = true;
         break;
       }
@@ -95,9 +103,9 @@ module.exports = {
     return bool;
   },
   containsInOpenSet: function(node, openSet){
-    for(i=0; i < openSet.length; i++){
-      var bool = false;
-      if(openSet[i].node_id == node.node_id){
+    var bool = false;
+    for(m=0; m < openSet.length; m++){
+      if(openSet[m].node_id == node.node_id){
         bool = true;
         break;
       }
@@ -105,10 +113,10 @@ module.exports = {
     return bool;
   },
   checkNode: function(node, openSet){
-    for(i=0; i < openSet.length; i++){
-      if(openSet[i].node_id == node.node_id){
-        if(openSet[i].fvalue > node.fvalue){
-          openSet.splice(i, 1);
+    for(n=0; n < openSet.length; n++){
+      if(openSet[n].node_id == node.node_id){
+        if(openSet[n].fvalue > node.fvalue){
+          openSet.splice(n, 1);
           openSet.push(node);
           break;
         }
@@ -116,18 +124,37 @@ module.exports = {
     }
     return openSet;
   },
-  getPath: function(path, edges){
-    var path = [];
+  // construct path
+  getPath: function(startNode, closeSet, edges){
+    var storePath = [];
+    var storeSubpath = []
+    var index = closeSet.length - 1;
+    var current = closeSet[index];
 
-    for(i=0; i < path.length; i++){
-      for(i=0; i < edges.length; i++){
-        if(path[i].edge_id == edges[i].edge_id){
-          path.push(edges[i].sub_edges);
+    while(true){
+      if(current.node_id == startNode.node_id){
+        break;
+      } else{
+        storePath.push(current)
+        for(i=0; i < closeSet.length; i++){
+          if(current.root_id == closeSet[i].node_id){
+            current = closeSet[i];
+            break;
+          }
+        }
+      }
+    }
+    console.log(storePath.length);
+
+    for(i=0; i < storePath.length; i++){
+      for(j=0; j < edges.length; j++){
+        if(storePath[i].edge_id == edges[j].edge_id){
+          storeSubpath.push(edges[j]);
           break;
         }
       }
     }
-    return path;
+    return storeSubpath;
   },
   isInt: function(x) {
     return x % 1 === 0;
