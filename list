@@ -21,10 +21,22 @@ work out how to perfrom delete, add, etc in bd
 work on cookie and session
 
 
+top priority list
+- need to take value as input from userlike 58A
+-
+
+
 Note-
 socket makes it possible to to read data after routing
 lat and log values are stored in nested array individually
 
+
+    L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token={accessToken}', {
+    attribution: 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, <a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, Imagery © <a href="http://mapbox.com">Mapbox</a>',
+    maxZoom: 18,
+    id: 'prepha.p25phafc',
+    accessToken: 'pk.eyJ1IjoicHJlcGhhIiwiYSI6ImNpazV2b3ByeDAwOWZocm0yYzFkNzBwc3kifQ.HSTQ9oV1-pXCxXuYcoNaiQ'
+    }).addTo(map);
 
 session
 
