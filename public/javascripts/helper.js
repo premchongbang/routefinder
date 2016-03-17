@@ -28,7 +28,12 @@ module.exports = {
         break;
       }
     }
-    return temp;
+
+    if(temp == null){
+      return null;
+    } else {
+      return temp;
+    }
   },
   // returns nodes with highest f value
   getSuccessor: function(setItems){
@@ -147,16 +152,25 @@ module.exports = {
     console.log(storePath.length);
 
     for(i=0; i < storePath.length; i++){
-      for(j=0; j < edges.length; j++){
+      for(j=0; j < edges.length; j++) {
         if(storePath[i].edge_id == edges[j].edge_id){
-          storeSubpath.push(edges[j]);
+          console.log(edges[j].edge_id);
+          storeSubpath.push(edges[j].sub_edges);
           break;
         }
       }
     }
     return storeSubpath;
   },
-  isInt: function(x) {
-    return x % 1 === 0;
+  getObject: function(str, data){
+    var storePath = [];
+
+    for(i=0; i < data.length; i++){
+      var first = (data[i].replace(/[()]/g, ""));
+      var edge = first.split(",").map(Number).filter(Boolean);
+      console.log(edge);
+      storePath.push(edge);
+    }
+    return {name:str, data:storePath};
   }
 };
