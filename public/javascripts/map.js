@@ -7,7 +7,20 @@ function make_map(id, cl, data){
         minZoom:15
         }).addTo(map);
 
-    //map.locate({setView: true, maxZoom: 18});
+    if(data[0].name == "NOACTION"){
+        map.locate({setView: true, maxZoom: 17});
+        
+        function onLocationFound(e) {
+            var radius = e.accuracy / 2;
+
+            L.marker(e.latlng).addTo(map)
+                .bindPopup("You are here").openPopup();
+            cl[0].value = e.latlng;
+            L.circle(e.latlng, radius).addTo(map);
+        }
+
+        map.on('locationfound', onLocationFound);
+    }
 
     if(data[0].name == "PATH"){
         drawLine(data[0].data);

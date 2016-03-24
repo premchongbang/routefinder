@@ -27,61 +27,151 @@
     <script type="text/javascript" src="/javascripts/map.js"></script>
     <script src="/socket.io/socket.io.js"></script>
 
+    </style>
+
     <script type="text/javascript">
       var socket = io.connect();
       
       socket.on('renderMap', function(data){
         if(data.length > 0) {
-          make_map(document.getElementById("map"), document.getElementById("hidden_first_loc"), data);
+          make_map(document.getElementById("map"), document.getElementsByClassName("hidden_first_loc"), data);
         } else {
           var data2 = [{name:"NOACTION", data:[], dest:{}}];
-          make_map(document.getElementById("map"), document.getElementById("hidden_first_loc"), data2);
+          make_map(document.getElementById("map"), document.getElementsByClassName("hidden_first_loc"), data2);
         }
       });
+
+      function toggle(){
+        var x = document.getElementsByClassName('btnDisable');
+
+        if(document.getElementById("btnDisable").value == "OFF") {
+          for(i = 0; i < x.length; i++) {
+            x[i].value = "ON";
+          }
+        } else if(document.getElementById("btnDisable").value == "ON") {
+          for(i = 0; i < x.length; i++) {
+            x[i].value = "OFF";
+          }
+        }
+      }
     </script>
 
-     <style type="text/css">
-       .container {
-              height:auto;
-              width: auto;
-              padding: 10px;
+    <style type="text/css">
+      .container {
+        height: 100%;
+        width: 100%;
+        background-color: #eeeeee;
+        padding: 10px;
+      }
+      
+      .container .header {
+        background-color: black;
+        color: white;
+        text-align: center;
+        padding: 5px;
+        border-radius: 12px;
       }
 
-        #map { height: 500px;
-        }
-     </style>
-    
+      .container .sub-container{
+        height: 100%;
+        width: 100%;
+        padding: 15px;
+        background-color:#eeeeee;
+        float: left;
+      }
+      
+      .container .sub-container .nav-bar {
+        background-color:#eeeeee;
+        height:100%;
+        width: 25%;
+        float:left;
+        padding: 2px;  
+      }
+
+      .container .sub-container .nav-bar .row{
+        width: 100%;
+        margin: 0px;
+        padding: 0px;
+      }
+
+      .container .sub-container .nav-bar .left {
+        width: 170px;
+        padding: 0px;
+        float: left;
+      }
+
+      .container .sub-container .nav-bar .right {
+        width: 50px;
+        padding: 0px;
+        float: left;
+        margin: 2px;
+      }
+
+      .container .sub-container .mapping {
+        height: 100%;
+        width: 75%;
+        float: left;
+        padding: 2px;
+        background-color: #eeeeee;
+        border-style: solid;
+        border-color: black;
+      }
+
+      #btnDisable {
+        width: 50px;
+        background-color: #008CBA;;
+        border-color: white;
+        border-radius: 12px;
+        margin: 4px;
+      }
+
+      .footer {
+        background-color:black;
+        color:white;
+        clear:both;
+        text-align:center;
+        padding:5px;    
+      }
+    </style>
+
   </head>
   <body>
     <div class="container">
-      <div class="jumbotron">
-        <div class="row"> 
-          <div class="col-sm-3">
-            <p> 
-              <form class="navbar-form navbar-left" method="post" action="/get_names" accept-charset="UTF-8" enctype="application/x-www-form-urlencoded">
-                <div class="row">
-                  <div class="col-sm-8">
-                    <input type="text" name="first_loc" id= "first_loc" class="form-control input-search" value="2">
-                    <input type="hidden" name="hidden_first_loc" id= "hidden_first_loc" class="form-control input-search">
-                    <input type="text" name="second_loc" class="form-control input-search" value="58">
-                  </div>
-                    
-                  <div class="col-sm-4">
-                    <span class="input-group-btn">
-                     <button class="btn btn-search" onclick="getPosition()" type="submit"><i class="glyphicon glyphicon-search"></i></button>
-                    </span>
-                  </div>
-                </div>
-              </form>
-            </p>
-          </div>
-
-          <div class="col-sm-9">
-            <div id="map"> </div>
-          </div>
+      <div class="header">
+        <h1>ROUTE FINDER</h1>
+      </div>
+      <div class="sub-container">
+        <div class="nav-bar"> 
+          <form method="post" action="/get_names" accept-charset="UTF-8" enctype="application/x-www-form-urlencoded">
+            <div class="row">
+              <div class="left">
+                <input type="text" name="first_loc" id= "first_loc" class="form-control input-search" value="Current Location">
+                <input type="hidden" name="hidden_first_loc" class ="hidden_first_loc" value="NULL">
+                <input type="text" name="second_loc" class="form-control input-search" value="Destination">
+                <input type="hidden" name="hidden_disable_value" class="btnDisable" value="OFF">
+              </div>
+                  
+              <div class="right">
+                <span class="input-group-btn">
+                  <button class="btn btn-search" style="border-radius: 12px; width: 50px; margin: 2px; color: blue" type="submit"> <i class="glyphicon glyphicon-search"></i></button>
+                </span>
+              </div>
+            </div>
+            <div class="row">
+              <input type="button" id="btnDisable" class= "btnDisable" value="OFF" style="color:blue" onclick="toggle()">
+              <label for="btnDisable"> DISABLE ACCESS </label>
+            </div>
+          </form>
+        </div>
+        
+        <div class ="mapping">
+          <div id="map" style="height: 550px;"> </div>
         </div>
       </div>
+
+      <div class="footer"></div> 
     </div>
+
 
     <!-- jQuery (necessary for Bootstrap's JavaScript plugins) --
     <script src="../node_modules/bootstrap/dist/js/bootstrap.js"></script>

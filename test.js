@@ -50,7 +50,7 @@ var finalPackage = [];
 //handling index form
 app.post('/get_names', function(req, res, next){
   // returned latlng is string
-  console.log("Destination from " + req.body.hidden_first_loc + " to " + req.body.second_loc);
+  console.log("Destination from " + req.body.hidden_first_loc + " to " + req.body.hidden_disable_value);
   var graph = [];
   var edges = [];
   var startVertex = req.body.first_loc;

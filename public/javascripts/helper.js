@@ -154,7 +154,7 @@ module.exports = {
     for(i=0; i < storePath.length; i++){
       for(j=0; j < edges.length; j++) {
         if(storePath[i].edge_id == edges[j].edge_id){
-          console.log(edges[j].edge_id);
+          //console.log(edges[j].edge_id);
           storeSubpath.push(edges[j].sub_edges);
           break;
         }
@@ -168,7 +168,7 @@ module.exports = {
     for(i=0; i < data.length; i++){
       var first = (data[i].replace(/[()]/g, ""));
       var edge = first.split(",").map(Number).filter(Boolean);
-      console.log(edge);
+      //console.log(edge);
       storePath.push(edge);
     }
     return {name:str, data:storePath};
