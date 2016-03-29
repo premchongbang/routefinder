@@ -48,19 +48,168 @@ app.get('/', function(req, res) {
     res.render('index.ejs', {csrf: 'CSRF TOKEN'});
 });
 
+// redirect to login page when user wants to add event
 app.get('/login', function(req, res, next) {
-  res.render('login.ejs');
-});
-
-app.get('/event', function(req, res, next) {
   finalPackage.push({name:"LOGIN", data:[]});
   res.render('login.ejs');
 });
 
-// for testing purpose .. later should be tasted with add_event
-app.post('/event', function(req, res, next) {
-  finalPackage.push({name:"MATCHFOUND", data:[]});
-  res.redirect('/login');
+// checking login detail
+app.post('/login_check', function(req, res, next){
+  pg.connect(connectionString, function(err, client, done){
+    if(err){
+      done();
+      console.log("Could not connect to bd");
+      res.status(500);
+      res.render(500);
+    };
+
+    // getting form attribute values
+    var uName = req.body.login_name;
+    var pw = req.body.password;
+    var position = req.body.hidden_position;
+
+    if(uName == "" || pw == ""){
+      res.redirect('login');
+    } else {
+      async.waterfall([
+        function(callback){
+          var query = "SELECT * FROM student WHERE username = '"+ uName + "' AND password = '"+ pw + "'";
+          client.query(query, function(err, result){
+            if(err) {
+              return callback(err, "db");
+            } else {
+              if(result.rows.length !== 1){
+                return callback(err, "NoMatch");
+              }
+              done();
+              callback(null);
+            }
+          });
+        }],
+        function(err, result){
+          if(result == "NoMatch"){
+            console.log(result);
+            finalPackage.push({name:"NOMATCH", data:[]});
+            res.redirect('/');
+          } else if(result == "db"){
+            console.log("could not perform Database query");
+            finalPackage.push({name:"DBFAIL", data:[]});
+            res.redirect('/');
+          } else {
+            console.log("Match Found");
+            finalPackage.push({name:"MATCHFOUND", data:[{username: uName}]}); // send marker position
+            res.render('login.ejs');
+          }
+      });
+    }
+  });
+});
+
+//adding event to database
+app.post('/add_event', function(req, res, next){
+  pg.connect(connectionString, function(err, client, done){
+    if(err){
+      done();
+      console.log("Could not connect to bd");
+      res.status(500);
+      res.render(500);
+    };
+
+    // getting form attribute values
+    var society_name = req.body.society_name;
+    var event_name = req.body.event_name;
+    var date = req.body.date;
+    var position = req.body.hidden_position.replace(/[a-zA-Z]/g, "");
+    var description = req.body.des;
+    var username = req.body.hidden_username;
+
+    if(society_name == "" || event_name == "" || date == "" || description == ""){
+      finalPackage.push({name:"MATCHFOUND", data:[{username: username}]});
+      console.log("Incomplete Form");
+      res.render('login.ejs');
+    } else {
+      async.waterfall([
+        function(callback){
+
+          var query = "INSERT INTO public.event(society_name, event_name, date, detail, latlng, student_username) VALUES ('"+ society_name +"', '"+ event_name +"', '"+ date +"', '"+ description +"', point"+ position +", '"+ username +"');";
+          client.query(query, function(err){
+            if(err){ 
+              console.log(err);
+              callback(err, "db");
+            } else {
+              done();
+              callback(null);
+            }
+          });
+        }
+        ],
+        function(err, result){
+        if(result == "db"){
+          console.log("Could not perform Database query");
+          finalPackage.push({name:"DBFAIL", data:[]});
+          res.redirect('/');
+        }else {
+          console.log("Event Added");
+          res.redirect('/');
+        }
+      });
+    }
+  });
+});
+
+app.get('/get_events', function(req, res, next){
+  pg.connect(connectionString, function(err, client, done){
+    if(err){
+      done();
+      console.log("Could not connect to bd");
+      res.status(500);
+      res.render(500);
+    };
+
+    // getting form attribute values
+    var uName = req.body.login_name;
+    var pw = req.body.password;
+    var position = req.body.hidden_position;
+
+    var store_event = [];
+
+    async.waterfall([
+      function(callback){
+        client.query("SELECT * FROM event ORDER BY event_id ASC", function(err, result){
+          if(err) {
+            return callback(err, "db");
+          } else {
+            if(result.rows.length < 1){
+              return callback(err, "NoEvent");
+            } else {
+              for(i=0; i< result.rows.length; i++){
+                var value = result.rows[i];
+                console.log(value);
+                store_event.push(value);
+              }
+              done();
+              callback(null);
+            }
+          }
+        });
+      }],
+      function(err, result){
+        if(result == "NoEvent"){
+          console.log(result);
+          finalPackage.push({name:"NOEVENTS", data:[]});
+          res.redirect('/');
+        } else if(result == "db"){
+          console.log("could not perform Database query");
+          finalPackage.push({name:"DBFAIL", data:[]});
+          res.redirect('/');
+        }else {
+          console.log("Match Found");
+          finalPackage.push({name:"SHOWEVENTS", data: store_event});
+          res.redirect('/');
+        }
+      });
+  });
 });
 
 //handling index form
@@ -217,6 +366,8 @@ app.post('/find_route', function(req, res, next){
         } else if(result == "db"){
           done();
           console.log("Database could not perform query");
+          finalPackage.push({name:"DBFAIL", data:[]});
+          res.redirect('/');
         } else {
           done();
           console.log("Redirected");
