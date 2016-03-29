@@ -17,13 +17,11 @@ module.exports = {
       return 12742 * Math.asin(Math.sqrt(a)) * 1000; // Diameter of the earth in km (2 * 6371)
   },
   //gets the node attribute
-  // ??? right now just works on building node id and break
-  // neat to work on every node using current location using node_id if node_id does not match
   getNode: function(node, graph){
     var temp;
 
     for(i=0; i < graph.length; i++){
-      if(graph[i].node_id == parseInt(node)){
+      if(graph[i].building_id == parseInt(node)){
         temp = {node_id:graph[i].node_id, root_id:graph[i].node_id, latlng:graph[i].latlng, weight:0, pathLength:0, fvalue:0, edge_id:0};
         break;
       }
@@ -149,7 +147,6 @@ module.exports = {
         }
       }
     }
-    console.log(storePath.length);
 
     for(i=0; i < storePath.length; i++){
       for(j=0; j < edges.length; j++) {
