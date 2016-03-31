@@ -50,8 +50,8 @@ app.get('/', function(req, res) {
 
 // redirect to login page when user wants to add event
 app.get('/login', function(req, res, next) {
-  finalPackage.push({name:"LOGIN", data:[]});
-  res.render('login.ejs');
+  finalPackage.push({name:"NOMATCH", data:[]});
+  res.render('test.ejs');
 });
 
 // checking login detail
@@ -185,7 +185,6 @@ app.get('/get_events', function(req, res, next){
             } else {
               for(i=0; i< result.rows.length; i++){
                 var value = result.rows[i];
-                console.log(value);
                 store_event.push(value);
               }
               done();
@@ -218,25 +217,26 @@ app.post('/find_route', function(req, res, next){
   console.log("Destination from " + req.body.first_loc + " to " + req.body.second_loc);
   var graph = [];
   var edges = [];
-  var startVertex = req.body.first_loc;
-  var endVertex = req.body.second_loc; // returned as string
-  var openSet = [];
-  var closeSet = [];
-  var path = [];
-  //console.log("NULL" == startVertex);
+  // getting rid of white-space and converting in upper case letter
+  var startVertex = (req.body.first_loc).replace(/\s/g, "").toUpperCase();
+  var endVertex = (req.body.second_loc).replace(/\s/g, "").toUpperCase(); 
+  
+  var openSet = []; // storing nodes to be explored
+  var closeSet = []; // storing  nodes which are explored
+  var path = []; // stores the path 
 
   // need a page with msg when invalid input
   // checks for invalid input against empty string, space and non-integers
-  if(startVertex == "" && endVertex == "" || startVertex == " " && endVertex == " "){
-    //console.log(1);
+  if(startVertex == "" && endVertex == ""){
+    console.log(1);
     res.redirect('/');
   } else {
-    if(endVertex == "" || isNaN(endVertex)){
-      //console.log(2);
+    if(!helper.checkInputValidity(endVertex)){
+      console.log(2);
       res.redirect('/');
-    } else if(startVertex == "" || !isNaN(startVertex)){
+    } else if(startVertex == "" || helper.checkInputValidity(startVertex)){
       if(startVertex == ""){
-        //console.log(3);
+        console.log(3);
         setTimeout(console.log("waiting"),5000);
         startVertex = req.body.hidden_first_loc;
         console.log(startVertex);
@@ -308,14 +308,14 @@ app.post('/find_route', function(req, res, next){
         while (openSet.length){
           // returns single node the node with lowest fvalue
           //{ node_id: 2, root_id: 2, latlng: { x: 50.93576, y: -1.39827 }, weight: 0, pathLength: 0, fvalue: 0, edge_id: 0 }
-          var current = helper.getSuccessor(openSet);
+          var current = helper.getSuccessor(openSet, endNode);
 
           if(current.node_id !== endNode.node_id){
             //remove the current node from open set and add it to closed set
             var index = openSet.indexOf(current);
             openSet.splice(index, 1);
             closeSet.push(current);
-                
+            
             // return array of neighbours
             //{ node_id: 4, root_id: 2, latlng: { x: 50.93576, y: -1.39827 }, weight: 49.38, pathLength: 0, fvalue: 0, edge_id: 56 }
             nodeNeigh = helper.getNeigh(graph, edges, current);
@@ -324,10 +324,10 @@ app.post('/find_route', function(req, res, next){
             for(i=0; i < nodeNeigh.length; i++){
               // checking if closed set contains node with lower fvalue than successor, ignore if it exist and move to next one
               if(helper.containsInClosedSet(nodeNeigh[i], closeSet)){
-                
+                openSet = helper.checkNode(nodeNeigh[i], closeSet);
                 continue;
               } else {
-                
+
                 var gvalue = helper.findG(current, nodeNeigh[i]);
                 var hvalue = helper.findH(nodeNeigh[i], endNode);
 
@@ -335,7 +335,8 @@ app.post('/find_route', function(req, res, next){
                 nodeNeigh[i].pathLength = gvalue;
                 nodeNeigh[i].fvalue = (gvalue + hvalue);
 
-                if(helper.containsInOpenSet(nodeNeigh[i], openSet)){              // checking if open set contains node with lower fvalue than successor, ignore if it exists and move to next one
+                // checking if open set contains node with lower fvalue than successor, ignore if it exists and move to next one  
+                if(helper.containsInOpenSet(nodeNeigh[i], openSet)){      
                   // checks if current node f value is lower than previous one and replace it if true
                   openSet = helper.checkNode(nodeNeigh[i], openSet);
                 } else {
@@ -376,7 +377,7 @@ app.post('/find_route', function(req, res, next){
     });
   });
 } else{
-  //console.log(4);
+  console.log(4);
   res.redirect('/');
 }}
 });

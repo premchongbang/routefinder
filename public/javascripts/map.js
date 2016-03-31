@@ -123,6 +123,7 @@ function render_map(id, cl, data){
         //L.circle(e.latlng, radius).addTo(map);
     }
 
+    // draws line in the map
     function drawLine(path) {
         var storeList = [];
 
@@ -140,13 +141,14 @@ function render_map(id, cl, data){
                 color: 'red',
                 weight: 3,
                 opacity: 0.5,
-                smoothFactor: 1
+                smoothFactor: 2
             });
 
             firstpolyline.addTo(map);
         }
     }
 
+    // displays the events in the map using the data set
     function showEvents(events){
         for(i=0; i < events.length; i++){
             var event_temp = '<h1 style="text-align: center;"> <label>'+ events[i].event_name +'</label> </h1>\

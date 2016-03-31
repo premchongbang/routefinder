@@ -9,21 +9,53 @@ module.exports = {
       lon1 *= deg2rad;
       lat2 *= deg2rad;
       lon2 *= deg2rad;
-      var a = (
-          (1 - cos(lat2 - lat1)) +
-          (1 - cos(lon2 - lon1)) * cos(lat1) * cos(lat2)
-          ) / 2;
+      var a = ((1 - cos(lat2 - lat1)) +
+              (1 - cos(lon2 - lon1)) * cos(lat1) * cos(lat2)
+              ) / 2;
 
-      return 12742 * Math.asin(Math.sqrt(a)) * 1000; // Diameter of the earth in km (2 * 6371)
+      return 12742 * Math.asin(Math.sqrt(a)) * 1000; // Diameter of the earth in m (2 * 6371 * 1000)
+  },
+  checkInputValidity: function(input){
+    var exceptionInput = ["2A", "44A", "58A"];
+    if(this.contains(exceptionInput, input)){
+      console.log("check 1");
+      return true;
+    } else if(input == "" || (!isNaN(input))) {
+      console.log("check 2");
+      return true;
+    } else {
+      console.log("check 3");
+      return false;
+    }
+  },
+  contains: function(array, obj){
+    for (var i = 0; i < array.length; i++) {
+        if (array[i] == obj) {
+            return true;
+        }
+    }
+    return false;
   },
   //gets the node attribute
   getNode: function(node, graph){
     var temp;
-
-    for(i=0; i < graph.length; i++){
-      if(graph[i].building_id == parseInt(node)){
-        temp = {node_id:graph[i].node_id, root_id:graph[i].node_id, latlng:graph[i].latlng, weight:0, pathLength:0, fvalue:0, edge_id:0};
-        break;
+    var exceptionInput = ["2A", "44A", "58A"];
+    if(this.contains(exceptionInput, node)){
+      for(i=0; i < graph.length; i++){
+        console.log("inside loop BID " + graph[i].building_id + " == " + node);
+        if(graph[i].building_id == node){
+          console.log("found the node building id " + graph[i].building_id);
+          temp = {node_id:graph[i].node_id, root_id:graph[i].node_id, latlng:graph[i].latlng, weight:0, pathLength:0, fvalue:0, edge_id:0};
+          break;
+        }
+      }
+    } else {
+      for(j=0; j < graph.length; j++){
+        if(graph[j].building_id == parseInt(node)){
+          console.log("found the node building id " + graph[j].building_id);
+          temp = {node_id:graph[j].node_id, root_id:graph[j].node_id, latlng:graph[j].latlng, weight:0, pathLength:0, fvalue:0, edge_id:0};
+          break;
+        }
       }
     }
 
@@ -34,18 +66,22 @@ module.exports = {
     }
   },
   // returns nodes with highest f value
-  getSuccessor: function(setItems){
+  getSuccessor: function(setItems, destNode){
     var temp;
     var temp2;
     var setLen = setItems.length;
     
     if(setLen > 2){
       for(i=0; i < (setLen - 1); i++){
-        temp = this.comparator(setItems[i], setItems[i + 1]);
-        if(i < 1){
-          temp2 = temp;
-        } else {
-          temp2 = this.comparator(temp, temp2);
+        if(setItems[i].node_id == destNode.node_id){
+          return setItems[i];
+        } else{
+          temp = this.comparator(setItems[i], setItems[i + 1]);
+          if(i < 1){
+            temp2 = temp;
+          } else {
+            temp2 = this.comparator(temp, temp2);
+          }
         }
       }
       return temp2;
@@ -73,14 +109,16 @@ module.exports = {
       if(neighTo == root.node_id){
         for(j=0;j < graph.length; j++){
           if(neighTo == graph[j].node_id){
+            //console.log("neih node edge id added " + edges[i].edge_id +" root node "+ root.node_id);
             neighbours.push({node_id:neighFrom, root_id:root.node_id, latlng:graph[j].latlng, weight:edges[i].weight, pathLength:root.pathLength, fvalue:0, edge_id:edges[i].edge_id});
             break;
           }
         }
       } else if(neighFrom == root.node_id){
-        for(j=0;j < graph.length; j++){
-          if(neighFrom == graph[j].node_id){
-            neighbours.push({node_id:neighTo, root_id:root.node_id, latlng:graph[j].latlng, weight:edges[i].weight, pathLength:root.pathLength, fvalue:0, edge_id:edges[i].edge_id});
+        for(k=0;k < graph.length; k++){
+          if(neighFrom == graph[k].node_id){
+            //console.log("neig node edge id added " + edges[i].edge_id +" root node "+ root.node_id);
+            neighbours.push({node_id:neighTo, root_id:root.node_id, latlng:graph[k].latlng, weight:edges[i].weight, pathLength:root.pathLength, fvalue:0, edge_id:edges[i].edge_id});
             break;
           }
         }
@@ -115,17 +153,19 @@ module.exports = {
     }
     return bool;
   },
-  checkNode: function(node, openSet){
-    for(n=0; n < openSet.length; n++){
-      if(openSet[n].node_id == node.node_id){
-        if(openSet[n].fvalue > node.fvalue){
-          openSet.splice(n, 1);
-          openSet.push(node);
+  checkNode: function(node, set){
+    for(n=0; n < set.length; n++){
+      if(set[n].node_id == node.node_id){
+        //console.log("edge "+ set[n].edge_id + " fvalue " + set[n].fvalue+ " pathLength " + set[n].pathLength);
+        if(set[n].fvalue > node.fvalue){
+          //console.log("openset fvalue to be removed = " + set[n].fvalue + " Edge removed "+ set[n].edge_id + " current node fvalue = " + node.fvalue +" edge added "+ node.edge_id);
+          set.splice(n, 1);
+          set.push(node);
           break;
         }
       }
     }
-    return openSet;
+    return set;
   },
   // construct path
   getPath: function(startNode, closeSet, edges){
@@ -151,7 +191,7 @@ module.exports = {
     for(i=0; i < storePath.length; i++){
       for(j=0; j < edges.length; j++) {
         if(storePath[i].edge_id == edges[j].edge_id){
-          //console.log(edges[j].edge_id);
+          console.log(edges[j].edge_id);
           storeSubpath.push(edges[j].sub_edges);
           break;
         }
