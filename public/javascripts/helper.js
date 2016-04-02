@@ -20,7 +20,7 @@ module.exports = {
     if(this.contains(exceptionInput, input)){
       console.log("check 1");
       return true;
-    } else if(input == "" || (!isNaN(input))) {
+    } else if(!isNaN(input)) {
       console.log("check 2");
       return true;
     } else {
@@ -43,16 +43,14 @@ module.exports = {
     if(this.contains(exceptionInput, node)){
       for(i=0; i < graph.length; i++){
         console.log("inside loop BID " + graph[i].building_id + " == " + node);
-        if(graph[i].building_id == node){
-          console.log("found the node building id " + graph[i].building_id);
+        if(graph[i].node_id == node){
           temp = {node_id:graph[i].node_id, root_id:graph[i].node_id, latlng:graph[i].latlng, weight:0, pathLength:0, fvalue:0, edge_id:0};
           break;
         }
       }
     } else {
       for(j=0; j < graph.length; j++){
-        if(graph[j].building_id == parseInt(node)){
-          console.log("found the node building id " + graph[j].building_id);
+        if(graph[j].node_id == parseInt(node)){
           temp = {node_id:graph[j].node_id, root_id:graph[j].node_id, latlng:graph[j].latlng, weight:0, pathLength:0, fvalue:0, edge_id:0};
           break;
         }
@@ -101,7 +99,6 @@ module.exports = {
   // stores current vertex neighbours and returns
   getNeigh: function(graph, edges, root){
     var neighbours = [];
-    
     // stores the starting vertex
     for(i=0; i < edges.length; i++){
       var neighTo = edges[i].to_node;
@@ -109,7 +106,6 @@ module.exports = {
       if(neighTo == root.node_id){
         for(j=0;j < graph.length; j++){
           if(neighTo == graph[j].node_id){
-            //console.log("neih node edge id added " + edges[i].edge_id +" root node "+ root.node_id);
             neighbours.push({node_id:neighFrom, root_id:root.node_id, latlng:graph[j].latlng, weight:edges[i].weight, pathLength:root.pathLength, fvalue:0, edge_id:edges[i].edge_id});
             break;
           }
@@ -117,7 +113,6 @@ module.exports = {
       } else if(neighFrom == root.node_id){
         for(k=0;k < graph.length; k++){
           if(neighFrom == graph[k].node_id){
-            //console.log("neig node edge id added " + edges[i].edge_id +" root node "+ root.node_id);
             neighbours.push({node_id:neighTo, root_id:root.node_id, latlng:graph[k].latlng, weight:edges[i].weight, pathLength:root.pathLength, fvalue:0, edge_id:edges[i].edge_id});
             break;
           }
@@ -137,8 +132,10 @@ module.exports = {
     var bool = false;
     for(j=0; j < closeSet.length; j++){
       if(closeSet[j].node_id == node.node_id){
-        bool = true;
-        break;
+        if(node.fvalue >= closeSet[j].fvalue){
+          bool = true;
+          break;      
+        }
       }
     }
     return bool;
@@ -156,12 +153,10 @@ module.exports = {
   checkNode: function(node, set){
     for(n=0; n < set.length; n++){
       if(set[n].node_id == node.node_id){
-        //console.log("edge "+ set[n].edge_id + " fvalue " + set[n].fvalue+ " pathLength " + set[n].pathLength);
         if(set[n].fvalue > node.fvalue){
-          //console.log("openset fvalue to be removed = " + set[n].fvalue + " Edge removed "+ set[n].edge_id + " current node fvalue = " + node.fvalue +" edge added "+ node.edge_id);
           set.splice(n, 1);
           set.push(node);
-          break;
+          break;      
         }
       }
     }

@@ -23,6 +23,9 @@ function render_map(id, cl, data){
         case "PATH":
             drawLine(data[0].data);
             break;
+        case "NOPATH":
+            window.alert("No path found.");
+            break;
         case "MATCHFOUND":
             username = data[0].data[0].username;
             map.on('click', showForm);
@@ -36,10 +39,13 @@ function render_map(id, cl, data){
         case "NOMATCH":
             break;
         case "INCOMPLETEFORM":
+            window.alert("Incomplete form. Please fill in the whole form");
             break;
         case "NOEVENTS":
+            window.alert("No events registered.");
             break;
         case "DBFAIL":
+            window.alert("Query Failed. Please try again later.");
             break;
     };
     
