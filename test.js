@@ -50,8 +50,8 @@ app.get('/', function(req, res) {
 
 // redirect to login page when user wants to add event
 app.get('/login', function(req, res, next) {
-  finalPackage.push({name:"NOMATCH", data:[]});
-  res.render('test.ejs');
+  finalPackage.push({name:"LOGIN", data:[]});
+  res.render('login.ejs');
 });
 
 // checking login detail
@@ -132,7 +132,7 @@ app.post('/add_event', function(req, res, next){
       async.waterfall([
         function(callback){
 
-          var query = "INSERT INTO public.event(society_name, event_name, date, detail, latlng, student_username) VALUES ('"+ society_name +"', '"+ event_name +"', '"+ date +"', '"+ description +"', point"+ position +", '"+ username +"');";
+          var query = "INSERT INTO public.event(organiser, event_title, date, description, latlng, student_username) VALUES ('"+ society_name +"', '"+ event_name +"', '"+ date +"', '"+ description +"', point"+ position +", '"+ username +"');";
           client.query(query, function(err){
             if(err){ 
               console.log(err);
@@ -319,20 +319,18 @@ app.post('/find_route', function(req, res, next){
             // returns single node the node with lowest fvalue
             //{ node_id: 2, root_id: 2, latlng: { x: 50.93576, y: -1.39827 }, weight: 0, pathLength: 0, fvalue: 0, edge_id: 0 }
             var current = helper.getSuccessor(openSet, endNode);
+            console.log("successor " + current.node_id + " edge_id "+ current.edge_id);
 
             if(current.node_id !== endNode.node_id){
-              // return array of neighbours
-              //{ node_id: 4, root_id: 2, latlng: { x: 50.93576, y: -1.39827 }, weight: 49.38, pathLength: 0, fvalue: 0, edge_id: 56 }
-              nodeNeigh = helper.getNeigh(graph, edges, current);
+              // prevents start node being evaluated again
+              if(helper.checkForStartNode(current, startNode)){
+                // return array of neighbours
+                //{ node_id: 4, root_id: 2, latlng: { x: 50.93576, y: -1.39827 }, weight: 49.38, pathLength: 0, fvalue: 0, edge_id: 56 }
+                nodeNeigh = helper.getNeigh(graph, edges, current);
 
-              // this loop will add current node's neighbours to open set if their fvalue is lower than the list
-              for(i=0; i < nodeNeigh.length; i++){
-                // checking if closed set contains node with lower fvalue than successor, ignore if it exist and move to next one
-                if(helper.containsInClosedSet(nodeNeigh[i], closeSet)){
-                  openSet = helper.checkNode(nodeNeigh[i], openSet);
-                  //openSet.push(nodeNeigh[i]);
-                  continue;
-                } else {
+                // this loop will add current node's neighbours to open set if their fvalue is lower than the list
+                for(i=0; i < nodeNeigh.length; i++){
+                  
                   var gvalue = helper.findG(current, nodeNeigh[i]);
                   var hvalue = helper.findH(nodeNeigh[i], endNode);
 
@@ -340,8 +338,12 @@ app.post('/find_route', function(req, res, next){
                   nodeNeigh[i].pathLength = gvalue;
                   nodeNeigh[i].fvalue = (gvalue + hvalue);
 
+                  // checking if closed set contains node with lower fvalue than successor, ignore if it exist and move to next one
+                  if(helper.containsInClosedSet(nodeNeigh[i], closeSet)){
+                    closeSet = helper.checkNode(nodeNeigh[i], closeSet);
+                    openSet.push(nodeNeigh[i]);
                   // checking if open set contains node with lower fvalue than successor, ignore if it exists and move to next one  
-                  if(helper.containsInOpenSet(nodeNeigh[i], openSet)){      
+                  } else if(helper.containsInOpenSet(nodeNeigh[i], openSet)){      
                     // checks if current node f value is lower than previous one and replace it if true
                     openSet = helper.checkNode(nodeNeigh[i], openSet);
                   } else {
@@ -349,12 +351,18 @@ app.post('/find_route', function(req, res, next){
                     openSet.push(nodeNeigh[i]);
                   }
                 }
-              }
-              //remove the current node from open set and add it to closed set
-              var index = openSet.indexOf(current);
-              openSet.splice(index, 1);
-              closeSet.push(current);
 
+                console.log(nodeNeigh);
+
+                //remove the current node from open set and add it to closed set
+                var index = openSet.indexOf(current);
+                openSet.splice(index, 1);
+                closeSet.push(current);
+              } else {
+                var index = openSet.indexOf(current);
+                openSet.splice(index, 1);
+                closeSet.push(current);
+              }
             } else {
               console.log("path found");
               closeSet.push(current);
