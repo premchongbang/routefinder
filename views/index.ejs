@@ -36,8 +36,7 @@
           render_map(document.getElementById("mapid"), document.getElementsByClassName("hidden_first_loc"), data);
         } else {
           document.getElementById('map').innerHTML = '<div id="mapid" style="height: 550px;"> </div>';
-          var piv = [{name:"NOACTION", data:[]}];
-          render_map(document.getElementById("mapid"), document.getElementsByClassName("hidden_first_loc"), piv);
+          render_map(document.getElementById("mapid"), document.getElementsByClassName("hidden_first_loc"), data);
         }
       });
 

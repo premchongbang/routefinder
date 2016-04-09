@@ -25,6 +25,8 @@ function render_map(id, cl, data){
             break;
         case "NOPATH":
             window.alert("No path found.");
+            map.locate({setView: true, maxZoom: 17});
+            map.on('locationfound', onLocationFound);
             break;
         case "MATCHFOUND":
             username = data[0].data[0].username;
@@ -35,6 +37,16 @@ function render_map(id, cl, data){
             break;
         case "SHOWEVENTS":
             showEvents(data[0].data);
+            break;
+        case "INVALIDINPUT":
+            window.alert("Invalid input or current location not found.");
+            map.locate({setView: true, maxZoom: 17});
+            map.on('locationfound', onLocationFound);
+            break;
+        case "CURRENTLOCFAIL":
+            window.alert("Location out of bound. No near recoreded location.");
+            map.locate({setView: true, maxZoom: 17});
+            map.on('locationfound', onLocationFound);
             break;
         case "NOMATCH":
             break;
@@ -157,10 +169,10 @@ function render_map(id, cl, data){
     // displays the events in the map using the data set
     function showEvents(events){
         for(i=0; i < events.length; i++){
-            var event_temp = '<h1 style="text-align: center;"> <label>'+ events[i].event_name +'</label> </h1>\
-                <p> <label> Society Name: '+ events[i].society_name +'</label> </p>\
+            var event_temp = '<h1 style="text-align: center;"> <label>'+ events[i].event_title +'</label> </h1>\
+                <p> <label> Society Name: '+ events[i].organiser +'</label> </p>\
                 <p> <label> Date: '+ events[i].date +'</label> </p>\
-                <p> <label> Details: '+ events[i].detail +'</label> </p>'
+                <p> <label> Details: '+ events[i].description +'</label> </p>'
 
             var latlng = new L.LatLng(events[i].latlng.x, events[i].latlng.y);
             marker = new L.Marker(latlng, {draggable:false});

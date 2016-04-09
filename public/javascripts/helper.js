@@ -20,7 +20,7 @@ module.exports = {
     if(this.contains(exceptionInput, input)){
       console.log("check 1");
       return true;
-    } else if(!isNaN(input)) {
+    } else if(!isNaN(input)){
       console.log("check 2");
       return true;
     } else {
@@ -35,22 +35,25 @@ module.exports = {
         }
     }
     return false;
-  }, //gets the node attribute
-  getNode: function(node, graph){
-    var temp;
-    var exceptionInput = ["2A", "44A", "58A"];
-    if(this.contains(exceptionInput, node)){
+  },
+  getStartNode: function(startNode, graph){
+    var temp = null;
+    var exceptionInput = ["2A", "44A", "58A", "B27"];
+
+    if(this.contains(exceptionInput, startNode)){
       for(i=0; i < graph.length; i++){
-        console.log("inside loop BID " + graph[i].building_id + " == " + node);
-        if(graph[i].node_id == node){
-          temp = {node_id:graph[i].node_id, root_id:graph[i].node_id, latlng:graph[i].latlng, weight:0, pathLength:0, fvalue:0, edge_id:0};
-          break;
+        if(graph[i].building_id !== null){
+          var str = (graph[i].building_id).replace(/[\s]/g,"");
+          if(str == startNode){
+            temp = {node_id:graph[i].node_id, root_id:graph[i].node_id, latlng:graph[i].latlng, weight:0, pathLength:0, fvalue:0, edge_id:0, access_id:graph[i].access_id};
+            break;
+          }
         }
       }
     } else {
       for(j=0; j < graph.length; j++){
-        if(graph[j].node_id == parseInt(node)){
-          temp = {node_id:graph[j].node_id, root_id:graph[j].node_id, latlng:graph[j].latlng, weight:0, pathLength:0, fvalue:0, edge_id:0};
+        if(graph[j].building_id == parseInt(startNode)){
+          temp = {node_id:graph[j].node_id, root_id:graph[j].node_id, latlng:graph[j].latlng, weight:0, pathLength:0, fvalue:0, edge_id:0, access_id:graph[j].access_id};
           break;
         }
       }
@@ -60,6 +63,84 @@ module.exports = {
       return null;
     } else {
       return temp;
+    }
+  }, // returns the node that is closest to the current co-ordinate
+  getCurrentStartNode: function(list, lat, lng){
+    var temp;
+
+    if(list.length > 1) {
+      for(i=0; i < (list.length - 1); i++){
+        var item1 = this.findDistance(lat, lng, list[i].latlng.x, list[i].latlng.y);
+        var item2 = this.findDistance(lat, lng, list[i + 1].latlng.x, list[i + 1].latlng.y);
+        console.log(item1 + " " + list[i].node_id +" " + item2 +" "+ list[i +1].node_id);
+        if(this.compare(item1, item2)){
+          temp = list[i];
+        } else {
+          temp = list[i + 1];
+        }
+      }
+
+      temp = {node_id:temp.node_id, root_id:temp.node_id, latlng:temp.latlng, weight:0, pathLength:0, fvalue:0, edge_id:0, access_id:temp.access_id};
+
+    } else {
+      temp = {node_id:list[0].node_id, root_id:list[0].node_id, latlng:list[0].latlng, weight:0, pathLength:0, fvalue:0, edge_id:0, access_id:list[0].access_id};
+    }
+    console.log(temp.node_id);
+    return temp;
+  },
+  //gets the nearest building node attribute
+  getEndNode: function(startNode, endNode, access, graph){
+    var temp;
+    var store = []; // stores all the entrace to the destination building
+    var exceptionInput = ["2A", "44A", "58A", "B27"];
+    if(access == "ON"){
+      if(this.contains(exceptionInput, endNode)){
+        for(i=0; i < graph.length; i++){
+          if(graph[i].building_id !== null){
+            var str = (graph[i].building_id).replace(/[\s]/g,"");
+            if(str == endNode && graph[i].access_id == 1){
+              store.push.graph[i];
+            }
+          }
+        }
+      } else {
+        for(j=0; j < graph.length; j++){
+          if(graph[j].building_id == parseInt(endNode) && graph[j].access_id == 1){
+            store.push(graph[j]);
+          }
+        }
+      }
+    } else {
+      if(this.contains(exceptionInput, endNode)){
+        for(i=0; i < graph.length; i++){
+          if(graph[i].building_id !== null){
+            var str = (graph[i].building_id).replace(/[\s]/g,"");
+            if(str == endNode){
+              store.push.graph[i];
+            }
+          }
+        }
+      } else {
+        for(j=0; j < graph.length; j++){
+          if(graph[j].building_id == parseInt(endNode)){
+            store.push(graph[j]);
+          }
+        }
+      }
+    }
+
+    if(store.length >= 1){
+      temp = this.getCurrentStartNode(store, startNode.latlng.x, startNode.latlng.y);
+      return temp;
+    } else {
+      return null;
+    }
+  },// returns true of item1 is greater than item2
+  compare: function(item1, item2){
+    if(item1 < item2){
+      return true;
+    } else {
+      return false;
     }
   },
   // returns nodes with highest f value
@@ -73,22 +154,22 @@ module.exports = {
         if(setItems[i].node_id == destNode.node_id){
           return setItems[i];
         } else{
-          temp = this.comparator(setItems[i], setItems[i + 1]);
+          temp = this.customComparator(setItems[i], setItems[i + 1]);
           if(i < 1){
             temp2 = temp;
           } else {
-            temp2 = this.comparator(temp, temp2);
+            temp2 = this.customComparator(temp, temp2);
           }
         }
       }
       return temp2;
     } else if(setLen == 2){
-      return this.comparator(setItems[0], setItems[1]);
+      return this.customComparator(setItems[0], setItems[1]);
     } else {
       return setItems[0];
     }
   },
-  comparator: function(item1, item2){
+  customComparator: function(item1, item2){
     if(item1.fvalue == 0 && item2.fvalue == 0){
       if(item1.weight < item2.weight){
         return item1;
@@ -112,14 +193,14 @@ module.exports = {
       if(neighTo == root.node_id){
         for(j=0;j < graph.length; j++){
           if(neighFrom == graph[j].node_id){
-            neighbours.push({node_id:neighFrom, root_id:root.node_id, latlng:graph[j].latlng, weight:edges[i].weight, pathLength:root.pathLength, fvalue:0, edge_id:edges[i].edge_id});
+            neighbours.push({node_id:neighFrom, root_id:root.node_id, latlng:graph[j].latlng, weight:edges[i].weight, pathLength:root.pathLength, fvalue:0, edge_id:edges[i].edge_id, access_id:graph[j].access_id});
             break;
           }
         }
       } else if(neighFrom == root.node_id){
         for(k=0;k < graph.length; k++){
           if(neighTo == graph[k].node_id){
-            neighbours.push({node_id:neighTo, root_id:root.node_id, latlng:graph[k].latlng, weight:edges[i].weight, pathLength:root.pathLength, fvalue:0, edge_id:edges[i].edge_id});
+            neighbours.push({node_id:neighTo, root_id:root.node_id, latlng:graph[k].latlng, weight:edges[i].weight, pathLength:root.pathLength, fvalue:0, edge_id:edges[i].edge_id, access_id:graph[k].access_id});
             break;
           }
         }
@@ -145,7 +226,7 @@ module.exports = {
   findH: function(neigh, dest){
     return this.findDistance(neigh.latlng.x, neigh.latlng.y, dest.latlng.x, dest.latlng.y);
   },
-  containsInClosedSet: function(node, closeSet){
+  containsInCloseSet: function(node, closeSet){
     var bool = false;
     for(j=0; j < closeSet.length; j++){
       if(closeSet[j].node_id == node.node_id){
@@ -203,7 +284,7 @@ module.exports = {
     for(i=0; i < storePath.length; i++){
       for(j=0; j < edges.length; j++) {
         if(storePath[i].edge_id == edges[j].edge_id){
-          console.log("selsected " + edges[j].edge_id);
+          console.log("selected " + edges[j].edge_id);
           storeSubpath.push(edges[j].sub_edges);
           break;
         }

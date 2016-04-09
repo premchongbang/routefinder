@@ -9,6 +9,7 @@ var parseurl = require('parseurl');
 var helper = require('./public/javascripts/helper.js');
 var pg = require("pg");
 var async = require("async");
+var geolib = require("geolib");
 
 var connectionString = process.env.DATABASE_URL || 'postgres://postgres:@localhost:5432/route';
 
@@ -44,8 +45,8 @@ var finalPackage = [];
 
 // GET home page. viewed at http://localhost:8080
 app.get('/', function(req, res) {
-  // creating csrf token
-    res.render('index.ejs', {csrf: 'CSRF TOKEN'});
+  finalPackage.push({name:"NOACTION", data:[]});
+  res.render('index.ejs', {csrf: 'CSRF TOKEN'});
 });
 
 // redirect to login page when user wants to add event
@@ -211,18 +212,24 @@ app.get('/get_events', function(req, res, next){
   });
 });
 
+app.post('/test', function(req, res, next){
+  //var point = (req.body.hidden_first_loc).replace(/[([a-zA-Z])]/g, "");
+  //console.log(point);
+  res.redirect('/');
+});
+
 //handling index form
 app.post('/find_route', function(req, res, next){
-  // returned latlng is string
-  console.log("Destination from " + req.body.first_loc + " to " + req.body.second_loc);
-  var graph = [];
-  var edges = [];
   // getting rid of white-space and converting in upper case letter
   var startVertex = (req.body.first_loc).replace(/\s/g, "").toUpperCase();
   var endVertex = (req.body.second_loc).replace(/\s/g, "").toUpperCase();
+  var currentLoc = (req.body.hidden_first_loc).replace(/[a-zA-Z]/g, "");
+  var accessID = req.body.hidden_disable_value;
 
-  var disableOn = req.body.hidden_disable_value;
+  console.log("Destination from " + req.body.first_loc + " to " + currentLoc);
   
+  var graph = [];
+  var edges = [];
   var openSet = []; // storing nodes to be explored
   var closeSet = []; // storing  nodes which are explored
   var path = []; // stores the path 
@@ -233,10 +240,10 @@ app.post('/find_route', function(req, res, next){
     console.log(1);
     res.redirect('/');
   } else {
-    if(startVertex == "" || !helper.checkInputValidity(endVertex)){
+    if(endVertex == "" || !helper.checkInputValidity(endVertex)){
       console.log(2);
       res.redirect('/');
-    } else if(startVertex !== "" && req.body.hidden_first_loc !== "" || helper.checkInputValidity(startVertex)){
+    } else if(startVertex !== "" && helper.checkInputValidity(startVertex) || currentLoc !== ""){
       // connecting to db and handeling error
       pg.connect(connectionString, function(err, client, done){
         if(err){
@@ -248,52 +255,50 @@ app.post('/find_route', function(req, res, next){
       // for synchronious operation of task
       async.waterfall ([
         function(callback){
-          // selecting data from graph table
-          // return value { node_id: 79, latlng: { x: 50.93459, y: -1.39818 }, building_id: null }
+          //{ node_id: 74, building_id: '2    ',rootId: 74, latlng: { x: 50.93644, y: -1.39781 }, weight: 0, pathLength: 0, edge_id: 0 }
           client.query("SELECT * FROM graph ORDER BY node_id ASC", function(err, result){
             if(err){
-              callback(err, "db");
+              return callback(err, "db");
             } else {
               //pushing db returned dat to local array
               for(i=0; i< result.rows.length; i++){
                 var value = result.rows[i];
                 graph.push(value);
               }
-
-              console.log("Got nodes");
-              callback(null);
             }
+            console.log("Got nodes");
+            callback(null);
           });
         },
         function(callback){
-          if(disableOn == "ON"){
+          if(accessID == "ON"){
             // { edge_id: 124, weight: 57.86, sub_edges: '((50.93409,-1.39626),(50.93412,-1.39627),(50.93416,-1.39612),(50.93438,-1.39597),(50.93434,-1.39581),(50.93438,-1.39558))', from_node: 18, to_node: 37}
-            client.query("SELECT * FROM edge ORDER BY edge_id ASC", function(err, result){
+            client.query("SELECT * FROM edge WHERE access_id = 0 ORDER BY edge_id ASC", function(err, result){
               if(err){
-                callback(err, "db");
+                return callback(err, "db");
               } else {
                 //pushing db returned dat to local array
                 for(i=0; i< result.rows.length; i++){
                   var value = result.rows[i];
                   edges.push(value);
                 }
-                console.log("Got edges which avoids assisted route");
               }
+              console.log("Got edges with assisted route");
               callback(null);
             });
           } else {
             // { edge_id: 124, weight: 57.86, sub_edges: '((50.93409,-1.39626),(50.93412,-1.39627),(50.93416,-1.39612),(50.93438,-1.39597),(50.93434,-1.39581),(50.93438,-1.39558))', from_node: 18, to_node: 37}
             client.query("SELECT * FROM edge ORDER BY edge_id ASC", function(err, result){
               if(err){
-                callback(err, "db");
+                return callback(err, "db");
               } else {
                 //pushing db returned dat to local array
                 for(i=0; i< result.rows.length; i++){
                   var value = result.rows[i];
                   edges.push(value);
                 }
-                console.log("Got edges");
               }
+              console.log("Got edges");
               callback(null);
             });
           }
@@ -301,10 +306,33 @@ app.post('/find_route', function(req, res, next){
         function(callback){
           console.log("starting alg");
           var nodeNeigh = [];
+          var startNode, endNode;
 
-          // { node_id: 74, building_id: '2    ',rootId: 74, latlng: { x: 50.93644, y: -1.39781 }, weight: 0, pathLength: 0, edge_id: 0 }
-          var startNode = helper.getNode(startVertex, graph);
-          var endNode = helper.getNode(endVertex, graph);
+          if(startVertex !== ""){
+            // { node_id: 74, building_id: '2    ',rootId: 74, latlng: { x: 50.93644, y: -1.39781 }, weight: 0, pathLength: 0, edge_id: 0 }
+            startNode = helper.getStartNode(startVertex, graph);
+            endNode = helper.getEndNode(startNode, endVertex, accessID, graph);
+          } else {
+            var loc = currentLoc.replace(/[(,)]/g,"");
+            var res = loc.split(" ");
+            var lat = res[0];
+            var lng = res[1];
+            var store = []; //stores node close to current co-ordinate
+
+            // gets all the close nodes using the current co-ordinate
+            for(i=0; i < graph.length; i++){
+              if(geolib.isPointInCircle({latitude: graph[i].latlng.x, longitude: graph[i].latlng.y}, {latitude: lat, longitude: lng}, 50)){
+                store.push(graph[i]);
+              }
+            }
+
+            if(store.length >= 1){
+              startNode = helper.getCurrentStartNode(store, lat, lng);
+              endNode = helper.getEndNode(startNode, endVertex, accessID, graph);
+            } else {
+              return callback(err, "No neighbouring node");
+            }
+          }
 
           // checking for valid node
           if(startNode == null){
@@ -319,7 +347,6 @@ app.post('/find_route', function(req, res, next){
             // returns single node the node with lowest fvalue
             //{ node_id: 2, root_id: 2, latlng: { x: 50.93576, y: -1.39827 }, weight: 0, pathLength: 0, fvalue: 0, edge_id: 0 }
             var current = helper.getSuccessor(openSet, endNode);
-            console.log("successor " + current.node_id + " edge_id "+ current.edge_id);
 
             if(current.node_id !== endNode.node_id){
               // prevents start node being evaluated again
@@ -339,7 +366,7 @@ app.post('/find_route', function(req, res, next){
                   nodeNeigh[i].fvalue = (gvalue + hvalue);
 
                   // checking if closed set contains node with lower fvalue than successor, ignore if it exist and move to next one
-                  if(helper.containsInClosedSet(nodeNeigh[i], closeSet)){
+                  if(helper.containsInCloseSet(nodeNeigh[i], closeSet)){
                     closeSet = helper.checkNode(nodeNeigh[i], closeSet);
                     openSet.push(nodeNeigh[i]);
                   // checking if open set contains node with lower fvalue than successor, ignore if it exists and move to next one  
@@ -351,8 +378,6 @@ app.post('/find_route', function(req, res, next){
                     openSet.push(nodeNeigh[i]);
                   }
                 }
-
-                console.log(nodeNeigh);
 
                 //remove the current node from open set and add it to closed set
                 var index = openSet.indexOf(current);
@@ -384,6 +409,7 @@ app.post('/find_route', function(req, res, next){
           if(result == "Invalid input"){
             done(); 
             console.log("Not valid input")
+            finalPackage.push({name:"INVALIDINPUT", data:[]});
             res.redirect('/');
           } else if(result == "db"){
             done();
@@ -394,6 +420,10 @@ app.post('/find_route', function(req, res, next){
             console.log("No path found");
             finalPackage.push({name:"NOPA", data:[]});
             res.redirect('/');
+          } else if(result == "No neighbouring node"){
+            console.log("No neighbouring node to current point");
+            finalPackage.push({name:"CURRENTLOCFAIL", data:[]});
+            res.redirect('/');
           } else {
             done();
             console.log("Redirected");
@@ -403,6 +433,7 @@ app.post('/find_route', function(req, res, next){
       });
     } else {
       console.log(4);
+      finalPackage.push({name:"INVALIDINPUT", data:[]});
       res.redirect('/');
     }
   }
