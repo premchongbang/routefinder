@@ -2,21 +2,21 @@
 
 module.exports = {
   // finding the distane between two latitude and longitude point using Haversine formula
-  findDistance: function(lat1, lon1, lat2, lon2){
+  findDistance: function(lat1, lng1, lat2, lng2){
       var deg2rad = 0.017453292519943295; // === Math.PI / 180
       var cos = Math.cos;
       lat1 *= deg2rad;
-      lon1 *= deg2rad;
+      lng1 *= deg2rad;
       lat2 *= deg2rad;
-      lon2 *= deg2rad;
+      lng2 *= deg2rad;
       var a = ((1 - cos(lat2 - lat1)) +
-              (1 - cos(lon2 - lon1)) * cos(lat1) * cos(lat2)
+              (1 - cos(lng2 - lng1)) * cos(lat1) * cos(lat2)
               ) / 2;
 
       return 12742 * Math.asin(Math.sqrt(a)) * 1000; // Diameter of the earth in m (2 * 6371 * 1000)
   },
   checkInputValidity: function(input){
-    var exceptionInput = ["2A", "44A", "58A"];
+    var exceptionInput = ["2A", "44A", "58A", "B27"];
     if(this.contains(exceptionInput, input)){
       console.log("check 1");
       return true;
@@ -87,19 +87,19 @@ module.exports = {
     }
     console.log(temp.node_id);
     return temp;
-  },
-  //gets the nearest building node attribute
+  }, //gets the nearest building node attribute
   getEndNode: function(startNode, endNode, access, graph){
     var temp;
     var store = []; // stores all the entrace to the destination building
     var exceptionInput = ["2A", "44A", "58A", "B27"];
+
     if(access == "ON"){
       if(this.contains(exceptionInput, endNode)){
         for(i=0; i < graph.length; i++){
           if(graph[i].building_id !== null){
             var str = (graph[i].building_id).replace(/[\s]/g,"");
             if(str == endNode && graph[i].access_id == 1){
-              store.push.graph[i];
+              store.push(graph[i]);
             }
           }
         }
@@ -116,7 +116,7 @@ module.exports = {
           if(graph[i].building_id !== null){
             var str = (graph[i].building_id).replace(/[\s]/g,"");
             if(str == endNode){
-              store.push.graph[i];
+              store.push(graph[i]);
             }
           }
         }
@@ -135,7 +135,7 @@ module.exports = {
     } else {
       return null;
     }
-  },// returns true of item1 is greater than item2
+  },// returns true of item1 is less than item2
   compare: function(item1, item2){
     if(item1 < item2){
       return true;
@@ -143,7 +143,7 @@ module.exports = {
       return false;
     }
   },
-  // returns nodes with highest f value
+  // returns nodes with lowest fvalue
   getSuccessor: function(setItems, destNode){
     var temp;
     var temp2;
@@ -168,7 +168,7 @@ module.exports = {
     } else {
       return setItems[0];
     }
-  },
+  }, // compare fvalue and use weight instead of fvalue when dealing with starting node neighbouring nodes
   customComparator: function(item1, item2){
     if(item1.fvalue == 0 && item2.fvalue == 0){
       if(item1.weight < item2.weight){
@@ -208,7 +208,7 @@ module.exports = {
     }
 
     return neighbours;
-  },
+  }, // check for start node being reevaluated and return false if true
   checkForStartNode: function(current, startNode){
     if(current.node_id == startNode.node_id){
       if(current.pathLength == 0){
@@ -219,41 +219,28 @@ module.exports = {
     } else {
       return true;
     }
-  },
+  }, // get the actual cost of path using weights
   findG: function(root, neigh){
     return root.pathLength + neigh.weight;
-  },
+  },// find distance between two latitude na longitude points
   findH: function(neigh, dest){
     return this.findDistance(neigh.latlng.x, neigh.latlng.y, dest.latlng.x, dest.latlng.y);
-  },
-  containsInCloseSet: function(node, closeSet){
+  }, // checks if node contains in a list and return boolean
+  containsInSet: function(node, set){
     var bool = false;
-    for(j=0; j < closeSet.length; j++){
-      if(closeSet[j].node_id == node.node_id){
-        if(node.fvalue < closeSet[j].fvalue){
-          bool = true;
-          break;   
-        }
-      }
-    }
-    return bool;
-  },
-  containsInOpenSet: function(node, openSet){
-    var bool = false;
-    for(m=0; m < openSet.length; m++){
-      if(openSet[m].node_id == node.node_id){
+    for(m=0; m < set.length; m++){
+      if(set[m].node_id == node.node_id){
         bool = true;
         break;
       }
     }
     return bool;
-  },
+  }, // checks if list contains any node with higher fvalue than the given node and return boolean
   checkNode: function(node, set){
     for(n=0; n < set.length; n++){
       if(set[n].node_id == node.node_id){
         if(set[n].fvalue > node.fvalue){
           set.splice(n, 1);
-          set.push(node);
           break;    
         }
       }
@@ -291,8 +278,8 @@ module.exports = {
       }
     }
     return storeSubpath;
-  },
-  getObject: function(str, data){
+  },// sotres path in an array and return object
+  getObject: function(str, data, startNode, endNode){
     var storePath = [];
 
     for(i=0; i < data.length; i++){
@@ -300,6 +287,25 @@ module.exports = {
       var edge = first.split(",").map(Number).filter(Boolean);
       storePath.push(edge);
     }
-    return {name:str, data:storePath};
+    return {name:str, data:storePath, startNode:startNode.latlng, endNode:endNode.latlng};
+  },
+  checkDate: function(date){
+    var today = new Date();
+    var dd = today.getDate();
+    var mm = today.getMonth() + 1; //January is 0!
+    var yyyy = today.getFullYear();
+    var chunk = date.split("-");
+
+    var bool = false;
+
+    if(chunk[0] >= yyyy){
+      if(chunk[1] >= mm){
+        if(chunk[2] >= dd){
+          bool = true;
+        }
+      } 
+    }
+
+    return bool;
   }
 };

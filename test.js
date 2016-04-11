@@ -40,19 +40,26 @@ app.use(cookieParser(cookieCre.cookieSecret));
 //define routes
 //app.use(require('./routes/index'));
 
-// for storing finished selected data publically
+// information carrier which carries data as object
 var finalPackage = [];
 
 // GET home page. viewed at http://localhost:8080
 app.get('/', function(req, res) {
-  finalPackage.push({name:"NOACTION", data:[]});
-  res.render('index.ejs', {csrf: 'CSRF TOKEN'});
+  res.render('index.ejs');
 });
 
 // redirect to login page when user wants to add event
 app.get('/login', function(req, res, next) {
-  finalPackage.push({name:"LOGIN", data:[]});
   res.render('login.ejs');
+});
+
+// redirect to login page when user wants to add event
+app.get('/event', function(req, res, next) {
+  res.render('event.ejs');
+});
+
+app.get('/editor', function(req, res, next) {
+  res.render('editor.ejs');
 });
 
 // checking login detail
@@ -66,41 +73,43 @@ app.post('/login_check', function(req, res, next){
     };
 
     // getting form attribute values
-    var uName = req.body.login_name;
+    var user_name = req.body.login_name;
     var pw = req.body.password;
-    var position = req.body.hidden_position;
+    var store_event = [];
 
-    if(uName == "" || pw == ""){
+    if(user_name == "" || pw == ""){
       res.redirect('login');
     } else {
       async.waterfall([
         function(callback){
-          var query = "SELECT * FROM student WHERE username = '"+ uName + "' AND password = '"+ pw + "'";
+          var query = "SELECT * FROM student WHERE username = '" + user_name + "' AND password = '"+ pw + "'";
           client.query(query, function(err, result){
             if(err) {
               return callback(err, "db");
             } else {
-              if(result.rows.length !== 1){
-                return callback(err, "NoMatch");
+              if(result.rows.length < 1){
+                return callback(err, "Login Fail");
+              } else {
+                done();
+                callback(null);
               }
-              done();
-              callback(null);
             }
           });
-        }],
+        }
+        ],
         function(err, result){
-          if(result == "NoMatch"){
+          if(result == "Login Fail"){
             console.log(result);
-            finalPackage.push({name:"NOMATCH", data:[]});
-            res.redirect('/');
+            finalPackage.push({name:"LOGINFAIL", data:{}});
+            res.redirect('/login');
           } else if(result == "db"){
             console.log("could not perform Database query");
-            finalPackage.push({name:"DBFAIL", data:[]});
+            finalPackage.push({name:"DBFAIL", data:{}});
             res.redirect('/');
           } else {
             console.log("Match Found");
-            finalPackage.push({name:"MATCHFOUND", data:[{username: uName}]}); // send marker position
-            res.render('login.ejs');
+            finalPackage.push({name:"LOGGEDIN", data:{}, username:user_name});
+            res.redirect('/event');
           }
       });
     }
@@ -108,7 +117,7 @@ app.post('/login_check', function(req, res, next){
 });
 
 //adding event to database
-app.post('/add_event', function(req, res, next){
+app.post('/add_event', function(req, res, next) {
   pg.connect(connectionString, function(err, client, done){
     if(err){
       done();
@@ -123,17 +132,19 @@ app.post('/add_event', function(req, res, next){
     var date = req.body.date;
     var position = req.body.hidden_position.replace(/[a-zA-Z]/g, "");
     var description = req.body.des;
-    var username = req.body.hidden_username;
+    var user_name = req.body.hidden_username;
+    var venue = req.body.venue;
+    console.log(user_name);
 
-    if(society_name == "" || event_name == "" || date == "" || description == ""){
-      finalPackage.push({name:"MATCHFOUND", data:[{username: username}]});
+    if(user_name == "undefined" || society_name == "" || event_name == "" || date == "" || description == "" || !helper.checkDate(date)){
+      finalPackage.push({name:"INCOMPLETEFORM", data:{}, username: user_name});
       console.log("Incomplete Form");
-      res.render('login.ejs');
+      res.redirect('/event');
     } else {
       async.waterfall([
         function(callback){
 
-          var query = "INSERT INTO public.event(organiser, event_title, date, description, latlng, student_username) VALUES ('"+ society_name +"', '"+ event_name +"', '"+ date +"', '"+ description +"', point"+ position +", '"+ username +"');";
+          var query = "INSERT INTO public.event(organiser, event_title, date, detail, latlng, student_username, venue) VALUES ('"+ society_name +"', '"+ event_name +"', '"+ date +"', '"+ description +"', point"+ position +", '"+ user_name +"', '"+ venue +"');";
           client.query(query, function(err){
             if(err){ 
               console.log(err);
@@ -148,12 +159,183 @@ app.post('/add_event', function(req, res, next){
         function(err, result){
         if(result == "db"){
           console.log("Could not perform Database query");
-          finalPackage.push({name:"DBFAIL", data:[]});
+          finalPackage.push({name:"DBFAIL", data:{}});
           res.redirect('/');
         }else {
           console.log("Event Added");
-          res.redirect('/');
+          finalPackage.push({name:"LOGGEDIN", data:{}, username:user_name});
+          res.redirect('/event');
         }
+      });
+    }
+  });
+});
+
+// for editing user events
+app.post('/edit_event', function(req, res, next) {
+  pg.connect(connectionString, function(err, client, done){
+    if(err){
+      done();
+      console.log("Could not connect to bd");
+      res.status(500);
+      res.render(500);
+    };
+
+    // getting form attribute values
+    var user_name = req.body.hidden_username;
+
+    if(user_name == ""){
+      res.redirect('/login');
+    } else {
+      var store_event = [];
+      async.waterfall([
+        function(callback){
+          var query = "SELECT * FROM event WHERE student_username = '" + user_name + "'";
+          client.query(query, function(err, result){
+            if(err) {
+              return callback(err, "db");
+            } else {
+              for(i=0; i < result.rows.length; i++){
+                var value = result.rows[i];
+                store_event.push(value);
+              }
+              if(store_event.length < 1){
+                 return callback(err, "No Event");
+              } else{
+                done();
+                callback(null);
+              }
+            }
+          });
+        }
+        ],
+        function(err, result){
+          if(result == "No Event"){
+            console.log(result);
+            finalPackage.push({name:"NOUSEREVENT", data:{}, username:user_name});
+            res.redirect("/event");
+          } else if(result == "db"){
+            console.log("could not perform Database query");
+            finalPackage.push({name:"DBFAIL", data:{}});
+            res.redirect('/');
+          } else {
+            console.log("Event Found");
+            finalPackage.push({name:"EDITEVENT", data:store_event, username:user_name});
+            res.redirect('/editor');
+        }
+      });
+    }
+  });
+});
+
+//updating event in database
+app.post('/update_event', function(req, res, next){
+  pg.connect(connectionString, function(err, client, done){
+    if(err){
+      done();
+      console.log("Could not connect to bd");
+      res.status(500);
+      res.render(500);
+    };
+
+    // getting form attribute values
+    var society_name = req.body.society_name;
+    var event_title = req.body.event_name;
+    var date = req.body.date;
+    var description = req.body.des;
+    var user_name = req.body.hidden_username;
+    var event_id = req.body.hidden_event_id;
+    var venue = req.body.venue;
+    var btn = req.body.btn_action;
+    var store_event =[];
+
+    if(btn == "Update"){
+      if(user_name == "" || society_name == "" || event_title == "" || date == "" || description == "" || !helper.checkDate(date)){
+        finalPackage.push({name:"INCOMPLETEFORM", data:{}, username: user_name});
+        console.log("Incomplete Form");
+        res.redirect('/event');
+      } else {
+        async.waterfall([
+          function(callback){
+            var query = "UPDATE public.event SET organiser='"+ society_name + "', event_title='"+ event_title + "', date='"+ date + "', detail='"+ description+ "', venue='"+ venue + "' WHERE event_id='"+ event_id +"';";
+            client.query(query, function(err){
+              if(err){
+                console.log(err);
+                return callback(err, "db");
+              } else {
+                done();
+                callback(null);
+              }
+            });
+          },
+          function(callback){
+            var query = "SELECT * FROM event WHERE  student_username ='" + user_name + "' ORDER BY event_id ASC;";
+            client.query(query, function(err, result){
+              if(err) {
+                return callback(err, "db");
+              } else {
+                for(i=0; i< result.rows.length; i++){
+                  var value = result.rows[i];
+                  store_event.push(value);
+                }
+                done()
+                callback(null);
+              }
+            });
+          }
+          ],
+          function(err, result){
+            if(result == "db"){
+              console.log("Could not perform Database query");
+              finalPackage.push({name:"DBFAIL", data:{}});
+              res.redirect('/');
+            } else {
+              console.log("Event Updated");
+              finalPackage.push({name:"UPDATED", data:store_event, username:user_name});
+              res.redirect('/');
+            }
+        });
+      }
+    } else {
+      async.waterfall([
+        function(callback){
+          var query = "DELETE FROM event WHERE event_id = '"+ event_id +"';";
+          client.query(query, function(err){
+            if(err){ 
+              console.log(err);
+               return callback(err, "db");
+            } else {
+              done();
+              callback(null);
+            }
+          });
+        },
+        function(callback){
+          var query = "SELECT * FROM event WHERE  student_username ='" + user_name + "' ORDER BY event_id ASC;";
+          client.query(query, function(err, result){
+            if(err) {
+              return callback(err, "db");
+            } else {
+              for(i=0; i< result.rows.length; i++){
+                var value = result.rows[i];
+                store_event.push(value);
+              }
+              done()
+              callback(null);
+            }
+          });
+        }
+        ],
+        function(err, result){
+          if(result == "db"){
+            console.log("Could not perform Database query");
+            finalPackage.push({name:"DBFAIL", data:[]});
+            res.redirect('/');
+          } else {
+            console.log("Event Deleted");
+            finalPackage.push({name:"DELETED", data:store_event, username:user_name});
+            res.redirect('/');
+          }
       });
     }
   });
@@ -167,11 +349,6 @@ app.get('/get_events', function(req, res, next){
       res.status(500);
       res.render(500);
     };
-
-    // getting form attribute values
-    var uName = req.body.login_name;
-    var pw = req.body.password;
-    var position = req.body.hidden_position;
 
     var store_event = [];
 
@@ -197,7 +374,7 @@ app.get('/get_events', function(req, res, next){
       function(err, result){
         if(result == "NoEvent"){
           console.log(result);
-          finalPackage.push({name:"NOEVENTS", data:[]});
+          finalPackage.push({name:"NOEVENTS", data:{}});
           res.redirect('/');
         } else if(result == "db"){
           console.log("could not perform Database query");
@@ -212,21 +389,17 @@ app.get('/get_events', function(req, res, next){
   });
 });
 
-app.post('/test', function(req, res, next){
-  //var point = (req.body.hidden_first_loc).replace(/[([a-zA-Z])]/g, "");
-  //console.log(point);
-  res.redirect('/');
-});
-
 //handling index form
 app.post('/find_route', function(req, res, next){
   // getting rid of white-space and converting in upper case letter
   var startVertex = (req.body.first_loc).replace(/\s/g, "").toUpperCase();
+  console.log(startVertex);
   var endVertex = (req.body.second_loc).replace(/\s/g, "").toUpperCase();
+  console.log(endVertex);
   var currentLoc = (req.body.hidden_first_loc).replace(/[a-zA-Z]/g, "");
   var accessID = req.body.hidden_disable_value;
 
-  console.log("Destination from " + req.body.first_loc + " to " + currentLoc);
+  console.log("Destination from " + endVertex + " to " + currentLoc);
   
   var graph = [];
   var edges = [];
@@ -349,7 +522,7 @@ app.post('/find_route', function(req, res, next){
             var current = helper.getSuccessor(openSet, endNode);
 
             if(current.node_id !== endNode.node_id){
-              // prevents start node being evaluated again
+              // prevents start node being evaluated again. if pathlength is greather than 0 then ignore it
               if(helper.checkForStartNode(current, startNode)){
                 // return array of neighbours
                 //{ node_id: 4, root_id: 2, latlng: { x: 50.93576, y: -1.39827 }, weight: 49.38, pathLength: 0, fvalue: 0, edge_id: 56 }
@@ -365,16 +538,17 @@ app.post('/find_route', function(req, res, next){
                   nodeNeigh[i].pathLength = gvalue;
                   nodeNeigh[i].fvalue = (gvalue + hvalue);
 
-                  // checking if closed set contains node with lower fvalue than successor, ignore if it exist and move to next one
-                  if(helper.containsInCloseSet(nodeNeigh[i], closeSet)){
+                  // checking if closed set contains node
+                  if(helper.containsInSet(nodeNeigh[i], closeSet)){
+                    // remove node if successor node f value is lower and add successor node to openlist
                     closeSet = helper.checkNode(nodeNeigh[i], closeSet);
                     openSet.push(nodeNeigh[i]);
-                  // checking if open set contains node with lower fvalue than successor, ignore if it exists and move to next one  
-                  } else if(helper.containsInOpenSet(nodeNeigh[i], openSet)){      
-                    // checks if current node f value is lower than previous one and replace it if true
-                    openSet = helper.checkNode(nodeNeigh[i], openSet);
+                  // checking if open set contains node  
+                  } else if(helper.containsInSet(nodeNeigh[i], openSet)){      
+                    // remove node if successor node f value is lower and add successor node to openlist
+                    //openSet = helper.checkNode(nodeNeigh[i], openSet);
+                    openSet.push(nodeNeigh[i]);
                   } else {
-                    //need to check if current node has lower f value
                     openSet.push(nodeNeigh[i]);
                   }
                 }
@@ -396,11 +570,11 @@ app.post('/find_route', function(req, res, next){
           }
           console.log("alg end");
           if(closeSet.length < 0){
-            return callback(err, "nopath");
+            return callback(err, "No Path");
           } else {
             // getting the path
             path = helper.getPath(startNode, closeSet, edges);
-            finalPackage.push(helper.getObject("PATH", path));
+            finalPackage.push(helper.getObject("PATH", path, startNode, endNode));
             callback(null);
           }
         }],
@@ -416,9 +590,9 @@ app.post('/find_route', function(req, res, next){
             console.log("Database could not perform query");
             finalPackage.push({name:"DBFAIL", data:[]});
             res.redirect('/');
-          } else if(result == "nopath"){
+          } else if(result == "No Path"){
             console.log("No path found");
-            finalPackage.push({name:"NOPA", data:[]});
+            finalPackage.push({name:"NOPATH", data:[]});
             res.redirect('/');
           } else if(result == "No neighbouring node"){
             console.log("No neighbouring node to current point");

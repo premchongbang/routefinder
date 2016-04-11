@@ -32,12 +32,20 @@
       
       socket.on('renderMap', function(data){
         if(data.length > 0) {
+          document.getElementById("hidden_username").value = data[0].username;
+          document.getElementById("user").innerHTML = "Hello " + data[0].username + ", Click to Add Event";
           document.getElementById('map').innerHTML = '<div id="mapid" style="height: 550px;"> </div>';
-          render_map(document.getElementById("mapid"), document.getElementsByClassName("hidden_first_loc"), data);
+          render_map(document.getElementById("mapid"), document.getElementsByClassName("hidden_username"), data);
         } else {
           var piv=[{name:"LOGIN", data:{}}];
+          document.getElementById('header').innerHTML = '<div id = "header" class="header">\
+                                                        <h1>ROUTE FINDER</h1>\
+                                                        <form method="get" action="/">\
+                                                          <input type="submit" class="btnHeader" style="width: 100px; position: absolute; left: 5px; bottom: 5px; margin: 5px;" value="Go Back">\
+                                                        </form>\
+                                                      </div>';
           document.getElementById('map').innerHTML = '<div id="mapid" style="height: 550px;"> </div>';
-          render_map(document.getElementById("mapid"), document.getElementsByClassName("hidden_first_loc"), piv);
+          render_map(document.getElementById("mapid"), document.getElementsByClassName("hidden_username"), piv);
         }
       });
     </script>
@@ -45,15 +53,24 @@
   </head>
   <body>
     <div class="container">
-      <div class="header">
+      <div id="header" class="header">
         <h1>ROUTE FINDER</h1>
-        <form method="get" action="/">
-          <input type="submit" id="btnDisable" style="width: 70px; position: absolute; left: 5px; bottom: 5px; margin: 5px;" value="Go Back"> 
-        </form>
+        <div class="row">
+          <form method="get" action="/">
+            <input type="submit" class="btnHeader" style="width: 100px; position: absolute; left: 5px; bottom: 5px; margin: 5px;" value="Go Back">
+          </form>
+        </div>
+        <div class="row">
+          <form method="post" action="/edit_event">
+            <input type="hidden" id="hidden_username" name="hidden_username" value="NULL">
+            <input type="submit" class="btnHeader" style="width: 110px; position: absolute; right: 10px; bottom: 5px; margin: 5px;" value="Edit Event">
+          </form>
+        </div>
       </div>
       <div class="sub-container">
+
         <div class ="mappings">
-          <p style="text-align:center;">Click to Login</p>
+          <p id="user" style="text-align:center;"></p>
           <div id="map" style="height: 550px;"> </div>
         </div>
       </div>
