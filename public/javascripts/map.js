@@ -1,7 +1,10 @@
 
 function render_map(id, cl, data){
+    //var cluster = new L.MarkerClusterGroup();
     var currentPosition;
     var map = L.map(id).setView([50.93491, -1.3964], 17);
+
+    //map.addLayer(cluster);
     
     L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', {
         attribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors',
@@ -13,15 +16,16 @@ function render_map(id, cl, data){
     var marker;
     var position; // store popup lat and lng position
     var username;
-
     switch(data[0].name){
         case "NOACTION":
+            addLayer();
             map.locate({setView: true, maxZoom: 17});
             map.on('locationfound', onLocationFound);
             break;
         case "PATH":
+            addLayer();
             drawLine();
-            map.locate({setView: true, maxZoom: 17});
+            //map.locate({setView: true, maxZoom: 17});
             map.on('locationfound', function(e){
                 if(e.latlng){
                     cl[0].value = e.latlng;
@@ -31,18 +35,40 @@ function render_map(id, cl, data){
             break;
         case "NOPATH":
             window.alert("No path found.");
+            addLayer();
             map.locate({setView: true, maxZoom: 17});
             map.on('locationfound', onLocationFound);
             break;
+        case "CURRENTLOCFAIL":
+            addLayer();
+            window.alert("Location out of bound. No near recoreded location.");
+            map.locate({setView: true, maxZoom: 17});
+            map.on('locationfound', onLocationFound);
+            break;
+        case "SHOWEVENTS":
+            addLayer();
+            showEvents();
+            break;
+        case "NOEVENTS":
+            window.alert("No events registered.");
+            addLayer();
+            map.on('locationfound', onLocationFound);
+            break;
         case "LOGIN":
+            map.on('click', showLoginForm);
+            break;
+        case "LOGINFAIL":
+            window.alert("Login Fail.");
             map.on('click', showLoginForm);
             break;
         case "LOGGEDIN":
             username = data[0].username;
             map.on('click', showForm);
             break;
-        case "SHOWEVENTS":
-            showEvents(data[0].data);
+        case "EVENTADDED":
+            window.alert("Event successuflly added.")
+            username = data[0].username;
+            map.on('click', showForm);
             break;
         case "EDITEVENT":
             username = data[0].username;
@@ -55,40 +81,60 @@ function render_map(id, cl, data){
             break;
         case "INVALIDINPUT":
             window.alert("Invalid input or current location not found.");
+            addLayer()
             map.locate({setView: true, maxZoom: 17});
             map.on('locationfound', onLocationFound);
-            break;
-        case "CURRENTLOCFAIL":
-            window.alert("Location out of bound. No near recoreded location.");
-            map.locate({setView: true, maxZoom: 17});
-            map.on('locationfound', onLocationFound);
-            break;
-        case "LOGINFAIL":
-            window.alert("Login Fail.");
-            map.on('click', showLoginForm);
             break;
         case "INCOMPLETEFORM":
             window.alert("Incomplete form or Invalid input or Not Logged in. Please fill in all boxes correctly.");
             username = data[0].username;
             map.on('click', showForm);
             break;
+        case "INCOMPLETEFORM2":
+            window.alert("Incomplete form or Invalid input. Please fill in all boxes correctly.");
+            username = data[0].username;
+            showUserEvent();
+            break;
         case "UPDATED":
             window.alert("Event updated.");
+            addLayer()
             break;
         case "DELETED":
             window.alert("Event deleted.");
-            break;
-        case "NOEVENTS":
-            window.alert("No events registered.");
-            map.locate({setView: true, maxZoom: 17});
-            map.on('locationfound', onLocationFound);
+            addLayer()
             break;
         case "DBFAIL":
             window.alert("Query Failed. Please try again later.");
+            addLayer()
             map.locate({setView: true, maxZoom: 17});
             map.on('locationfound', onLocationFound);
             break;
     };
+    
+    function addLayer(){
+            var searchControl = L.Control.extend({
+        options: {
+            position: 'topleft',
+            placeholder: "Destination"
+        },
+        onAdd: function (map) {
+            // happens after added to map
+            var container = L.DomUtil.create('div', 'search-container');
+            container.innerHTML = '<form method="post" action="/find_route" accept-charset="UTF-8" enctype="application/x-www-form-urlencoded">\
+                                 <input type="text" name="first_loc" id= "first_loc" class="form-control input-search" style="width: auto;" value="" placeholder="Current Location">\
+                                 <input type="hidden" name="hidden_first_loc" class="hidden_first_loc" value="NULL">\
+                                <input type="text" name="second_loc" style="width: auto; margin-bottom: 5px; margin-top: 5px;" class="form-control input-search" value="" placeholder="Destination">\
+                                <input type="hidden" name="hidden_disable_value" class="btnDisable" value="OFF">\
+                                <span class="input-group-btn">\
+                                    <button class="btn btn-search" style="border-radius: 12px; width: 50px; margin: 2px; background-color: #008CBA;" type="submit"> <i class="glyphicon glyphicon-search"></i></button>\
+                                </span>\
+                                <input type="button" id="btnDisable" class="btnDisable" value="OFF" style="background: url(images/3.png); height: 41px; width: 41px;"" onclick="toggle()">\
+                            </form>';
+            return container;
+        }
+        });
+        map.addControl(new searchControl());
+    }
     
     function showLoginForm(e){
         var un = "", pw = "";
@@ -147,6 +193,7 @@ function render_map(id, cl, data){
             marker.bindPopup(event_temp).openPopup();
         }
 
+        //get the user input values from the form
         society_event = L.DomUtil.get("event_name");
         society = L.DomUtil.get("society_name");
         date = L.DomUtil.get("date");
@@ -198,12 +245,16 @@ function render_map(id, cl, data){
             firstpolyline.addTo(map);
         }
 
+        //adding markers to the map
         L.marker(new L.LatLng(data[0].startNode.x, data[0].startNode.y)).addTo(map).bindPopup("START POINT").openPopup();
         L.marker(new L.LatLng(data[0].endNode.x, data[0].endNode.y)).addTo(map);
     }
 
     // displays the events in the map using the data set
-    function showEvents(events){
+    function showEvents(){
+        var events = data[0].data;
+
+        // adding marker with form inside pop ups
         for(i=0; i < events.length; i++){
             var event_temp = '<h1 style="text-align: center;">'+ events[i].event_title +'</h1>\
                 <p> Society Name: '+ events[i].organiser +' </p>\
@@ -215,6 +266,7 @@ function render_map(id, cl, data){
             marker = new L.Marker(latlng, {draggable:false});
             map.addLayer(marker);
             marker.bindPopup(event_temp).openPopup();
+            //cluster.addLayer(marker);
         }
     }
 
@@ -222,7 +274,9 @@ function render_map(id, cl, data){
     function showUserEvent(){
         var events = data[0].data;
 
+        // adding marker with form inside pop ups
         for(i=0; i < events.length; i++){
+            //customizing date format to yyyy-mm-dd
             var tempDate = events[i].date;
             var customdate = tempDate.slice(0, 10);
 
@@ -250,6 +304,7 @@ function render_map(id, cl, data){
             map.addLayer(marker);
             marker.bindPopup(event_temp).openPopup();
 
+            //get the user input values from the form
             society_event = L.DomUtil.get("event_name");
             society = L.DomUtil.get("society_name");
             date = L.DomUtil.get("date");

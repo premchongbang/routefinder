@@ -41,7 +41,7 @@ app.use(cookieParser(cookieCre.cookieSecret));
 //app.use(require('./routes/index'));
 
 // information carrier which carries data as object
-var finalPackage = [];
+var finalPackage = [{name:"NOACTION", data:{}}];
 
 // GET home page. viewed at http://localhost:8080
 app.get('/', function(req, res) {
@@ -163,7 +163,7 @@ app.post('/add_event', function(req, res, next) {
           res.redirect('/');
         }else {
           console.log("Event Added");
-          finalPackage.push({name:"LOGGEDIN", data:{}, username:user_name});
+          finalPackage.push({name:"EVENTADDED", data:{}, username:user_name});
           res.redirect('/event');
         }
       });
@@ -228,6 +228,14 @@ app.post('/edit_event', function(req, res, next) {
   });
 });
 
+// checking login detail
+app.post('/go_eventpage', function(req, res, next){
+  // getting form attribute values
+  var user_name = req.body.hidden_username;
+  finalPackage.push({name:"LOGGEDIN", data:{}, username:user_name});
+  res.redirect('/event');
+});
+
 //updating event in database
 app.post('/update_event', function(req, res, next){
   pg.connect(connectionString, function(err, client, done){
@@ -251,9 +259,34 @@ app.post('/update_event', function(req, res, next){
 
     if(btn == "Update"){
       if(user_name == "" || society_name == "" || event_title == "" || date == "" || description == "" || !helper.checkDate(date)){
-        finalPackage.push({name:"INCOMPLETEFORM", data:{}, username: user_name});
-        console.log("Incomplete Form");
-        res.redirect('/event');
+        async.waterfall([
+          function(callback){
+            var query = "SELECT * FROM event WHERE  student_username ='" + user_name + "' ORDER BY event_id ASC;";
+            client.query(query, function(err, result){
+              if(err) {
+                return callback(err, "db");
+              } else {
+                for(i=0; i< result.rows.length; i++){
+                  var value = result.rows[i];
+                  store_event.push(value);
+                }
+                done()
+                callback(null);
+              }
+            });
+          }
+          ],
+          function(err, result){
+            if(result == "db"){
+              console.log("Could not perform Database query");
+              finalPackage.push({name:"DBFAIL", data:[]});
+              res.redirect('/');
+            } else {
+              finalPackage.push({name:"INCOMPLETEFORM2", data:store_event, username:user_name});
+              console.log("Incomplete Form for Update");
+              res.redirect('/editor');
+            }
+        });
       } else {
         async.waterfall([
           function(callback){
@@ -359,7 +392,7 @@ app.get('/get_events', function(req, res, next){
             return callback(err, "db");
           } else {
             if(result.rows.length < 1){
-              return callback(err, "NoEvent");
+              return callback(err, "No Event");
             } else {
               for(i=0; i< result.rows.length; i++){
                 var value = result.rows[i];
@@ -372,7 +405,7 @@ app.get('/get_events', function(req, res, next){
         });
       }],
       function(err, result){
-        if(result == "NoEvent"){
+        if(result == "No Events"){
           console.log(result);
           finalPackage.push({name:"NOEVENTS", data:{}});
           res.redirect('/');
@@ -381,8 +414,8 @@ app.get('/get_events', function(req, res, next){
           finalPackage.push({name:"DBFAIL", data:[]});
           res.redirect('/');
         }else {
-          console.log("Match Found");
-          finalPackage.push({name:"SHOWEVENTS", data: store_event});
+          console.log("Events Found");
+          finalPackage.push({name:"SHOWEVENTS", data:store_event});
           res.redirect('/');
         }
       });
@@ -546,7 +579,7 @@ app.post('/find_route', function(req, res, next){
                   // checking if open set contains node  
                   } else if(helper.containsInSet(nodeNeigh[i], openSet)){      
                     // remove node if successor node f value is lower and add successor node to openlist
-                    //openSet = helper.checkNode(nodeNeigh[i], openSet);
+                    openSet = helper.checkNode(nodeNeigh[i], openSet);
                     openSet.push(nodeNeigh[i]);
                   } else {
                     openSet.push(nodeNeigh[i]);

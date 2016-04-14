@@ -19,50 +19,11 @@
         width: 100%;
         padding: 15px;
         background-color:#eeeeee;
-        float: left;
-      }
-      
-      .container .sub-container .nav-bar {
-        background-color:#eeeeee;
-        height:100%;
-        width: 25%;
-        float:left;
-        padding: 2px;  
-      }
-
-      .container .sub-container .nav-bar .row{
-        width: 100%;
-        margin: 0px;
-        padding: 0px;
-      }
-
-      .container .sub-container .nav-bar .left {
-        width: 170px;
-        padding: 0px;
-        float: left;
-      }
-
-      .container .sub-container .nav-bar .right {
-        width: 50px;
-        padding: 0px;
-        float: left;
-        margin: 2px;
-      }
-
-      .container .sub-container .mapping {
-        height: 100%;
-        width: 75%;
-        float: left;
-        padding: 2px;
-        background-color: #eeeeee;
-        border-style: solid;
-        border-color: black;
-        margin: auto;
       }
       
       .container .sub-container .mappings {
         height: 100%;
-        width: 75%;
+        width: 100%;
         background-color: #eeeeee;
         border-style: solid;
         border-color: black;

@@ -24,6 +24,8 @@
     <script type="text/javascript" src="/javascripts/map.js"></script>
     <script src="/socket.io/socket.io.js"></script>
 
+    <!-- <script src="/leaflet-markercluster/leaflet.markercluster.js"></script> -->
+    
     <!-- link to external stylesheet -->
     <link rel="stylesheet" type="text/css" href="/stylesheets/style.css">
 
@@ -45,10 +47,12 @@
         var x = document.getElementsByClassName('btnDisable');
 
         if(document.getElementById("btnDisable").value == "OFF") {
+          document.getElementById("btnDisable").style.background = "url(images/2.png)";
           for(i = 0; i < x.length; i++) {
             x[i].value = "ON";
           }
         } else if(document.getElementById("btnDisable").value == "ON") {
+          document.getElementById("btnDisable").style.background = "url(images/3.png)";
           for(i = 0; i < x.length; i++) {
             x[i].value = "OFF";
           }
@@ -73,29 +77,7 @@
         </div>
       </div>
       <div class="sub-container">
-        <div class="nav-bar"> 
-          <form method="post" action="/find_route" accept-charset="UTF-8" enctype="application/x-www-form-urlencoded">
-            <div class="row">
-              <div class="left">
-                <input type="text" name="first_loc" id= "first_loc" class="form-control input-search" value="" placeholder="Current Location">
-                <input type="hidden" name="hidden_first_loc" class="hidden_first_loc" value="NULL">
-                <input type="text" name="second_loc" style="margin-bottom: 5px; margin-top: 5px;" class="form-control input-search" value="" placeholder="Destination">
-                <input type="hidden" name="hidden_disable_value" class="btnDisable" value="OFF">
-              </div>
-              
-              <div class="right">
-                <span class="input-group-btn">
-                  <button class="btn btn-search" style="border-radius: 12px; width: 50px; margin: 2px; color: blue" type="submit"> <i class="glyphicon glyphicon-search"></i></button>
-                </span>
-              </div>
-            </div>
-            <div class="row">
-              <input type="button" id="btnDisable" class="btnDisable" value="OFF" style="color:blue" onclick="toggle()">
-              <label for="btnDisable"> DISABLE ACCESS </label>
-            </div>
-          </form>
-        </div>
-        <div class ="mapping">
+        <div class ="mappings">
           <div id="map" style="height: 550px;"> </div>
         </div>
       </div>
