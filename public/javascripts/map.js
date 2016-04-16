@@ -110,9 +110,18 @@ function render_map(id, cl, data){
             map.on('locationfound', onLocationFound);
             break;
     };
+
+    if (!L.Browser.touch) {
+        L.DomEvent
+            .disableClickPropagation(searchControl._container)
+            .disableScrollPropagation(searchControl._container);
+    } else {
+        L.DomEvent.disableClickPropagation(searchControl._container);
+    }
     
+    // adding layer control to leaflet map
     function addLayer(){
-            var searchControl = L.Control.extend({
+        var searchControl = L.Control.extend({
         options: {
             position: 'topleft',
             placeholder: "Destination"
@@ -130,12 +139,14 @@ function render_map(id, cl, data){
                                 </span>\
                                 <input type="button" id="btnDisable" class="btnDisable" value="OFF" style="background: url(images/3.png); height: 41px; width: 41px;"" onclick="toggle()">\
                             </form>';
+            L.DomEvent.disableClickPropagation(container);
             return container;
         }
         });
         map.addControl(new searchControl());
     }
     
+    // for pop up login form
     function showLoginForm(e){
         var un = "", pw = "";
         var login_temp = '<form method="post" action="/login_check">\
@@ -163,6 +174,7 @@ function render_map(id, cl, data){
         pw = L.DomUtil.get("password");
     }
 
+    // for pop up form
     function showForm(e){
         var society_event = "", society = "", date = "", des = "", venue=""; format = "yyyy-mm-dd";
 
