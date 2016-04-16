@@ -64,3 +64,8 @@
       #map{
         height:100%;
       }
+
+      title {
+        height:auto;
+        width: auto;
+      }
