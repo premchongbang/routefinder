@@ -6,8 +6,8 @@
     "start": "node ./bin/www",
     "deploy": "gcloud preview app deploy"
   },
-  "engines" : { 
-      "node": ">=0.12.7" 
+  "engines": {
+    "node": ">=0.12.7"
   },
   "dependencies": {
     "async": "^1.5.2",
