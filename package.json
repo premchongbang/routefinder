@@ -1,9 +1,13 @@
 {
   "name": "routefinder",
-  "version": "0.0.0",
+  "version": "1.2.6",
   "private": true,
   "scripts": {
-    "start": "supervisor ./bin/www"
+    "start": "node ./bin/www",
+    "deploy": "gcloud preview app deploy"
+  },
+  "engines" : { 
+      "node": ">=0.12.7" 
   },
   "dependencies": {
     "async": "^1.5.2",
@@ -19,13 +23,19 @@
     "jquery": "^2.2.2",
     "leaflet": "^0.7.7",
     "leaflet-markercluster": "^0.2.0",
-    "morgan": "~1.6.1",
-    "serve-favicon": "~2.3.0",
     "socket.io": "^1.4.5"
   },
   "main": "app.js",
   "devDependencies": {},
   "author": "",
   "license": "ISC",
-  "description": ""
+  "description": "Final year project",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/premchongbang/routefinder.git"
+  },
+  "bugs": {
+    "url": "https://github.com/premchongbang/routefinder/issues"
+  },
+  "homepage": "https://github.com/premchongbang/routefinder#readme"
 }

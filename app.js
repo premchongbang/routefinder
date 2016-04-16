@@ -9,12 +9,9 @@ var pg = require("pg");
 var async = require("async");
 var geolib = require("geolib");
 
-var connectionString = process.env.DATABASE_URL || 'postgres://postgres:@localhost:5432/route';
-
-// accessing private modules
-var cookieCre = require('./credentials.js')
-
 var app = express();
+
+var connectionString = process.env.DATABASE_URL || 'postgres://postgres:@localhost:5432/route';
 
 // socket io connection
 var server = require('http').Server(app);
@@ -33,6 +30,7 @@ app.set('view engine', 'ejs');
 
 //used for parsing encoded data
 app.use(bodyParser.urlencoded({ extended: true }));
+app.use(cookieParser());
 
 // information carrier which carries data as object
 var finalPackage = [{name:"NOACTION", data:{}}];
@@ -667,3 +665,5 @@ io.on('connection', function(socket){
 server.listen(app.get('port'), function(){
   console.log('Server listening at port ' + app.get('port'));
 });
+
+module.exports = app;

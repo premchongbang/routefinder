@@ -164,7 +164,7 @@ function render_map(id, cl, data){
     }
 
     function showForm(e){
-        var society_event = "", society = "", date = "", des = "", venue="";
+        var society_event = "", society = "", date = "", des = "", venue=""; format = "yyyy-mm-dd";
 
         var event_temp = '<form method="post" action="/add_event">\
             <p> <label for="event_name">Event Name:</label>\
@@ -172,7 +172,7 @@ function render_map(id, cl, data){
             <p> <label for="society_name">Society :</label>\
             <input type="text" id="society_name" name="society_name" value="'+ society +'""> </p>\
             <p> <label for="date">Date :</label>\
-            <input type="date" id="date" name="date" value="'+ date +'"> </p>\
+            <input type="date" id="date" name="date" placeholder="'+ format +'" value="'+ date +'"> </p>\
             <input type="hidden" name="hidden_position" value="'+ e.latlng +'"">\
             <input type="hidden" name="hidden_username" value="'+ username +'"">\
             <p><label for="venue">Venue :</label>\
@@ -254,11 +254,16 @@ function render_map(id, cl, data){
     function showEvents(){
         var events = data[0].data;
 
+
         // adding marker with form inside pop ups
         for(i=0; i < events.length; i++){
+            //customizing date format to yyyy-mm-dd
+            var tempDate = events[i].date;
+            var customDate = tempDate.slice(0, 10);
+
             var event_temp = '<h1 style="text-align: center;">'+ events[i].event_title +'</h1>\
                 <p> Society Name: '+ events[i].organiser +' </p>\
-                <p> Date: '+ events[i].date +' </p>\
+                <p> Date: '+ customDate +' </p>\
                 <p> Venue: '+ events[i].venue +' </p>\
                 <p> Details: '+ events[i].detail +'</p>';
 
@@ -278,9 +283,9 @@ function render_map(id, cl, data){
         for(i=0; i < events.length; i++){
             //customizing date format to yyyy-mm-dd
             var tempDate = events[i].date;
-            var customdate = tempDate.slice(0, 10);
+            var customDate = tempDate.slice(0, 10);
 
-            var society_event = events[i].event_title.replace(/\s/g, ""), society = events[i].organiser.replace(/\s/g, "") , date = customdate , des = events[i].detail.replace(/ +(?= )/g,''), venue=events[i].venue.replace(/\s/g, "");
+            var society_event = events[i].event_title.replace(/\s/g, ""), society = events[i].organiser.replace(/\s/g, "") , date = customDate , des = events[i].detail.replace(/ +(?= )/g,''), venue=events[i].venue.replace(/\s/g, "");
             
             var event_temp = '<form method="post" action="/update_event">\
                 <p> <label for="event_name">Event Name:</label>\
