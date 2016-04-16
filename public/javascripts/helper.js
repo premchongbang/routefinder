@@ -58,12 +58,8 @@ module.exports = {
         }
       }
     }
-
-    if(temp == null){
-      return null;
-    } else {
-      return temp;
-    }
+    console.log("start node" + temp);
+    return temp;
   }, // returns the node that is closest to the current co-ordinate
   getCurrentStartNode: function(list, lat, lng){
     var temp;
@@ -85,7 +81,7 @@ module.exports = {
     } else {
       temp = {node_id:list[0].node_id, root_id:list[0].node_id, latlng:list[0].latlng, weight:0, pathLength:0, fvalue:0, edge_id:0, access_id:list[0].access_id};
     }
-    console.log(temp.node_id);
+
     return temp;
   }, //gets the nearest building node attribute
   getEndNode: function(startNode, endNode, access, graph){
