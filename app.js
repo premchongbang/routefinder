@@ -423,8 +423,6 @@ app.post('/find_route', function(req, res, next){
   console.log(endVertex);
   var currentLoc = (req.body.hidden_first_loc).replace(/[a-zA-Z]/g, "");
   var accessID = req.body.hidden_disable_value;
-
-  console.log("Destination from " + endVertex + " to " + currentLoc + " start " + startVertex);
   
   var graph = [];
   var edges = [];
@@ -509,11 +507,6 @@ app.post('/find_route', function(req, res, next){
           if(startVertex !== ""){
             // { node_id: 74, building_id: '2    ',rootId: 74, latlng: { x: 50.93644, y: -1.39781 }, weight: 0, pathLength: 0, edge_id: 0 }
             startNode = helper.getStartNode(startVertex, graph);
-            
-            if(startNode == null){
-              return callback(err, "Invalid input");
-            }
-
             endNode = helper.getEndNode(startNode, endVertex, accessID, graph);
           } else {
             var loc = currentLoc.replace(/[(,)]/g,"");
@@ -563,6 +556,10 @@ app.post('/find_route', function(req, res, next){
                   
                   var gvalue = helper.findG(current, nodeNeigh[i]);
                   var hvalue = helper.findH(nodeNeigh[i], endNode);
+
+                  if(nodeNeigh[i].node_id == 52 || nodeNeigh[i].node_id == 2){
+                    console.log("target id " + nodeNeigh[i].node_id +" root id " + nodeNeigh[i].root_id + " g "+ gvalue);
+                  }
 
                   // updating path length value
                   nodeNeigh[i].pathLength = gvalue;

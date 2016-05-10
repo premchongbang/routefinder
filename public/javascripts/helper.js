@@ -58,7 +58,7 @@ module.exports = {
         }
       }
     }
-    console.log("start node" + temp);
+    
     return temp;
   }, // returns the node that is closest to the current co-ordinate
   getCurrentStartNode: function(list, lat, lng){
